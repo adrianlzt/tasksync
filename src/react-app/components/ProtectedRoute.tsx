@@ -1,4 +1,4 @@
-import { useAuth } from "@getmocha/users-service/react";
+import { useAuth } from "../providers/AuthProvider";
 import { Navigate } from "react-router";
 import { Loader2 } from "lucide-react";
 

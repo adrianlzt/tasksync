@@ -1,9 +1,43 @@
-import { useAuth } from "@getmocha/users-service/react";
-import { Navigate } from "react-router";
+import { useAuth } from "../providers/AuthProvider";
+import { Navigate, useNavigate } from "react-router";
 import { CheckSquare, Users, Shield, Zap } from "lucide-react";
+import { useGoogleLogin } from "@react-oauth/google";
+import { useState } from "react";
 
 export default function Login() {
-  const { user, redirectToLogin, isPending } = useAuth();
+  const { user, setUser, isPending: isAuthPending } = useAuth();
+  const navigate = useNavigate();
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  const handleLogin = useGoogleLogin({
+    onSuccess: async (codeResponse) => {
+      setIsLoggingIn(true);
+      try {
+        const res = await fetch("/api/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: codeResponse.code }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to create session");
+        }
+        
+        const userRes = await fetch("/api/users/me");
+        if (!userRes.ok) {
+          throw new Error("Failed to fetch user data");
+        }
+        const userData = await userRes.json();
+        setUser(userData);
+        navigate("/");
+      } catch (error) {
+        console.error("Login failed", error);
+      } finally {
+        setIsLoggingIn(false);
+      }
+    },
+    flow: 'auth-code',
+  });
 
   if (user) {
     return <Navigate to="/" replace />;
@@ -66,11 +100,11 @@ export default function Login() {
           {/* Login Button */}
           <div className="text-center">
             <button
-              onClick={redirectToLogin}
-              disabled={isPending}
+              onClick={() => handleLogin()}
+              disabled={isAuthPending || isLoggingIn}
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium py-3 px-4 rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
             >
-              {isPending ? 'Connecting...' : 'Continue with Google'}
+              {isAuthPending || isLoggingIn ? 'Connecting...' : 'Continue with Google'}
             </button>
             <p className="text-xs text-gray-500 mt-3">
               By continuing, you agree to our terms of service and privacy policy

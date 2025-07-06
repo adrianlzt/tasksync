@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { RotateCcw, RefreshCw, MessageSquare, CheckSquare, StickyNote, User, LogOut, Link, AlertCircle, Settings } from 'lucide-react';
-import { useAuth } from "@getmocha/users-service/react";
+import { useAuth } from "../providers/AuthProvider";
 import { useApi } from '@/react-app/hooks/useApi';
 import { Task, TaskList, KeepNote } from '@/shared/types';
 import SearchBar from '@/react-app/components/SearchBar';
