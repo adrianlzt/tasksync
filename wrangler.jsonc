@@ -18,4 +18,9 @@
       "database_id": "0197d96e-5a3e-7782-b656-001b6011817b",
     },
   ],
+  "vars": {
+    "GOOGLE_CLIENT_ID": "your-google-client-id-here",
+    "GOOGLE_CLIENT_SECRET": "your-google-client-secret-here",
+    "JWT_SECRET": "your-jwt-secret-here"
+  }
 }
