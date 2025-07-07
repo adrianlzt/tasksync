@@ -3,6 +3,16 @@ import { RotateCcw, RefreshCw, MessageSquare, CheckSquare, StickyNote, User, Log
 import { useAuth } from "../providers/AuthProvider";
 import { Task, TaskList, KeepNote } from '@/shared/types';
 import { getTaskLists, getTasks, deleteTask } from '../lib/googleApi';
+import {
+  getStoredTasks,
+  getStoredTaskLists,
+  getStoredTaskToTaskListMap,
+  storeTasks,
+  storeTaskLists,
+  storeTaskToTaskListMap,
+  deleteStoredTask,
+  clearStoredData,
+} from '../lib/db';
 import SearchBar from '@/react-app/components/SearchBar';
 import TaskCard from '@/react-app/components/TaskCard';
 import NoteCard from '@/react-app/components/NoteCard';
@@ -23,13 +33,58 @@ export default function Dashboard() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Set Google connection status based on user auth state
+  // Set Google connection status and load initial data from IndexedDB
   useEffect(() => {
     setGoogleConnected(!!user);
+    if (!user) {
+      setTasks([]);
+      setTaskLists([]);
+      setTaskToTaskListMap({});
+      setTaskListTitleMap({});
+      setNotes([]);
+      setLoading(false);
+      return;
+    }
+
+    async function loadInitialData() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [storedTasks, storedTaskLists, storedTaskMap] = await Promise.all([
+          getStoredTasks(),
+          getStoredTaskLists(),
+          getStoredTaskToTaskListMap(),
+        ]);
+
+        if (storedTasks.length > 0 || storedTaskLists.length > 0) {
+          setTasks(storedTasks);
+          setTaskLists(storedTaskLists);
+          setTaskListTitleMap(Object.fromEntries(storedTaskLists.map(l => [l.id, l.title])));
+          setTaskToTaskListMap(storedTaskMap || {});
+          setGoogleConnected(true);
+        }
+      } catch (err) {
+        console.error('Failed to load data from IndexedDB', err);
+        setError('Failed to load cached data.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadInitialData();
   }, [user]);
+
+  const handleLogout = async () => {
+    try {
+      await clearStoredData();
+    } catch (err) {
+      console.error('Failed to clear stored data on logout', err);
+    }
+    logout();
+  };
 
   const handleSync = async () => {
     if (!accessToken) {
@@ -41,19 +96,29 @@ export default function Dashboard() {
 
     try {
       const fetchedTaskLists = await getTaskLists(accessToken);
-      setTaskLists(fetchedTaskLists);
-      setTaskListTitleMap(Object.fromEntries(fetchedTaskLists.map(l => [l.id, l.title])));
-
+      
       const taskMap: Record<string, string> = {};
       const allTasks: Task[] = [];
 
-      for (const list of fetchedTaskLists) {
-        const tasksFromList = await getTasks(accessToken, list.id);
-        tasksFromList.forEach(task => {
+      const taskPromises = fetchedTaskLists.map(list => getTasks(accessToken, list.id));
+      const tasksByList = await Promise.all(taskPromises);
+
+      fetchedTaskLists.forEach((list, index) => {
+        tasksByList[index].forEach(task => {
           allTasks.push(task);
           taskMap[task.id] = list.id;
         });
-      }
+      });
+
+      await clearStoredData();
+      await Promise.all([
+        storeTaskLists(fetchedTaskLists),
+        storeTasks(allTasks),
+        storeTaskToTaskListMap(taskMap),
+      ]);
+
+      setTaskLists(fetchedTaskLists);
+      setTaskListTitleMap(Object.fromEntries(fetchedTaskLists.map(l => [l.id, l.title])));
       setTasks(allTasks);
       setTaskToTaskListMap(taskMap);
       
@@ -112,6 +177,7 @@ export default function Dashboard() {
 
     try {
       await deleteTask(accessToken, taskListId, taskId);
+      await deleteStoredTask(taskId);
       
       // On success, remove from local state
       setTasks(prev => prev.filter(t => t.id !== taskId));
@@ -200,7 +266,7 @@ export default function Dashboard() {
                         Settings
                       </button>
                       <button
-                        onClick={logout}
+                        onClick={handleLogout}
                         className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       >
                         <LogOut className="w-4 h-4" />
