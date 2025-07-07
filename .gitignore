@@ -1,0 +1,9 @@
+dist/
+node_modules/
+.wrangler/
+.dev.vars
+worker-configuration.d.ts
+.aider*
+tasksync.duckdns.org_gcloud.json
+.env
+.envrc
