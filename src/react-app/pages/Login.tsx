@@ -5,7 +5,7 @@ import { useGoogleLogin } from "@react-oauth/google";
 import { useState } from "react";
 
 export default function Login() {
-  const { user, setUser, isPending: isAuthPending } = useAuth();
+  const { user, login, isPending: isAuthPending } = useAuth();
   const navigate = useNavigate();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
@@ -25,10 +25,10 @@ export default function Login() {
         
         const userInfo = await userInfoRes.json();
         
-        setUser({
+        login({
           id: userInfo.sub,
           email: userInfo.email,
-        });
+        }, tokenResponse.access_token);
 
         navigate("/");
       } catch (error) {
@@ -38,6 +38,7 @@ export default function Login() {
       }
     },
     flow: 'implicit',
+    scope: 'https://www.googleapis.com/auth/tasks',
   });
 
   if (user) {

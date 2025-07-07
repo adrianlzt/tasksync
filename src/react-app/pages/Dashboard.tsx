@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { RotateCcw, RefreshCw, MessageSquare, CheckSquare, StickyNote, User, LogOut, Link, AlertCircle, Settings } from 'lucide-react';
 import { useAuth } from "../providers/AuthProvider";
 import { Task, TaskList, KeepNote } from '@/shared/types';
+import { getTaskLists, getTasks, deleteTask } from '../lib/googleApi';
 import SearchBar from '@/react-app/components/SearchBar';
 import TaskCard from '@/react-app/components/TaskCard';
 import NoteCard from '@/react-app/components/NoteCard';
@@ -9,10 +10,11 @@ import ChatInterface from '@/react-app/components/ChatInterface';
 import SettingsModal from '@/react-app/components/SettingsModal';
 
 export default function Dashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, accessToken } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [taskLists, setTaskLists] = useState<TaskList[]>([]);
   const [notes, setNotes] = useState<KeepNote[]>([]);
+  const [taskToTaskListMap, setTaskToTaskListMap] = useState<Record<string, string>>({});
   const [searchResults, setSearchResults] = useState<{ tasks?: Task[]; notes?: KeepNote[] } | null>(null);
   const [activeTab, setActiveTab] = useState<'tasks' | 'notes' | 'chat'>('tasks');
   const [syncing, setSyncing] = useState(false);
@@ -29,34 +31,36 @@ export default function Dashboard() {
   }, [user]);
 
   const handleSync = async () => {
+    if (!accessToken) {
+      setError("Not authenticated. Please log in again.");
+      return;
+    }
     setSyncing(true);
     setError(null);
 
-    // In client-only mode, we'll use some mock data.
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
     try {
-      const mockTasks: Task[] = [
-        { id: 't1', title: 'Finalize Q3 report', status: 'needsAction' },
-        { id: 't2', title: 'Schedule dentist appointment', status: 'needsAction' },
-        { id: 't3', title: 'Buy plane tickets', status: 'needsAction' },
-        { id: 't4', title: 'Review PR #123', status: 'completed' },
-        { id: 't5', title: 'Pick up dry cleaning', status: 'completed' },
-      ];
+      const fetchedTaskLists = await getTaskLists(accessToken);
+      setTaskLists(fetchedTaskLists);
 
-      const mockNotes: KeepNote[] = [
-        { id: 'n1', title: 'Meeting Notes 2025-10-26', textContent: '- Discussed Q4 roadmap\n- Action items for team', pinned: 1 },
-        { id: 'n2', title: 'Recipe for Lasagna', textContent: 'Ingredients: pasta, ground beef, tomato sauce, cheese...', pinned: 0 },
-        { id: 'n3', title: 'Vacation Ideas', textContent: '- Japan\n- Italy\n- New Zealand', pinned: 1 },
-      ];
+      const taskMap: Record<string, string> = {};
+      const allTasks: Task[] = [];
 
-      setTasks(mockTasks);
-      setNotes(mockNotes);
+      for (const list of fetchedTaskLists) {
+        const tasksFromList = await getTasks(accessToken, list.id);
+        tasksFromList.forEach(task => {
+          allTasks.push(task);
+          taskMap[task.id] = list.id;
+        });
+      }
+      setTasks(allTasks);
+      setTaskToTaskListMap(taskMap);
+      
+      // Google Keep API is not public, so we clear notes on sync.
+      setNotes([]);
+      
       setGoogleConnected(true);
-
     } catch (err) {
-      setError('Failed to sync data. Please try again.');
+      setError('Failed to sync data from Google. Please try again.');
       console.error(err);
     } finally {
       setSyncing(false);
@@ -70,8 +74,21 @@ export default function Dashboard() {
   };
 
   const handleDeleteTask = async (taskId: string) => {
+    if (!accessToken) {
+      setError('Not authenticated. Please log in again.');
+      return;
+    }
+
+    const taskListId = taskToTaskListMap[taskId];
+    if (!taskListId) {
+      setError('Could not determine the task list for this task. Please sync and try again.');
+      return;
+    }
+
     try {
-      // Only delete from local state
+      await deleteTask(accessToken, taskListId, taskId);
+      
+      // On success, remove from local state
       setTasks(prev => prev.filter(t => t.id !== taskId));
       if (searchResults?.tasks) {
         setSearchResults(prev => ({
@@ -81,7 +98,7 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error('Failed to delete task:', err);
-      setError('Failed to delete task.');
+      setError('Failed to delete task. Please try again.');
     }
   };
 

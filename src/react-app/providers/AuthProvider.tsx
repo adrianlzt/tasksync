@@ -7,45 +7,51 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  setUser: (user: User | null) => void;
+  accessToken: string | null;
   isPending: boolean;
+  login: (user: User, token: string) => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, _setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(true);
 
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        _setUser(JSON.parse(storedUser));
+      const storedToken = localStorage.getItem('accessToken');
+      if (storedUser && storedToken) {
+        setUser(JSON.parse(storedUser));
+        setAccessToken(storedToken);
       }
     } catch (error) {
-      console.error('Failed to load user from localStorage:', error);
-      _setUser(null);
+      console.error('Failed to load auth data from localStorage:', error);
+      setUser(null);
+      setAccessToken(null);
     } finally {
       setIsPending(false);
     }
   }, []);
 
-  const setUser = (user: User | null) => {
-    _setUser(user);
-    if (user) {
-      localStorage.setItem('user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('user');
-    }
+  const login = (user: User, token: string) => {
+    setUser(user);
+    setAccessToken(token);
+    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('accessToken', token);
   };
 
   const logout = () => {
     setUser(null);
+    setAccessToken(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('accessToken');
   };
 
-  const value = { user, setUser, isPending, logout };
+  const value = { user, accessToken, isPending, login, logout };
 
   return (
     <AuthContext.Provider value={value}>
