@@ -2,13 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { cors } from "hono/cors";
 import { getCookie, setCookie } from "hono/cookie";
-import {
-  exchangeCodeForSessionToken,
-  getOAuthRedirectUrl,
-  authMiddleware,
-  deleteSession,
-  MOCHA_SESSION_TOKEN_COOKIE_NAME,
-} from "@getmocha/users-service/backend";
+import { sign, verify } from 'hono/jwt';
 import { DatabaseService } from "./database";
 import { ChatService } from "./chatService";
 import { OAuthService } from "./oauthService";
@@ -19,21 +13,32 @@ const app = new Hono<{ Bindings: Env }>();
 
 app.use("*", cors());
 
+const SESSION_COOKIE_NAME = 'session_token';
+
+const authMiddleware = async (c, next) => {
+  const token = getCookie(c, SESSION_COOKIE_NAME);
+  if (!token) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
+  try {
+    const payload = await verify(token, c.env.JWT_SECRET);
+    if (!payload || !payload.user) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    c.set('user', payload.user);
+    await next();
+  } catch (error) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+};
+
 // Initialize services
 const getDbService = (env: Env) => new DatabaseService(env.DB);
 const getChatService = (env: Env) => new ChatService(getDbService(env));
 const getOAuthService = (env: Env) => new OAuthService(getDbService(env));
 
 // OAuth endpoints
-app.get('/api/oauth/google/redirect_url', async (c) => {
-  const redirectUrl = await getOAuthRedirectUrl('google', {
-    apiUrl: c.env.MOCHA_USERS_SERVICE_API_URL,
-    apiKey: c.env.MOCHA_USERS_SERVICE_API_KEY,
-  });
-
-  return c.json({ redirectUrl }, 200);
-});
-
 app.post("/api/sessions", async (c) => {
   const body = await c.req.json();
 
@@ -41,20 +46,61 @@ app.post("/api/sessions", async (c) => {
     return c.json({ error: "No authorization code provided" }, 400);
   }
 
-  const sessionToken = await exchangeCodeForSessionToken(body.code, {
-    apiUrl: c.env.MOCHA_USERS_SERVICE_API_URL,
-    apiKey: c.env.MOCHA_USERS_SERVICE_API_KEY,
-  });
+  try {
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        code: body.code,
+        client_id: c.env.GOOGLE_CLIENT_ID,
+        client_secret: c.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: 'postmessage',
+        grant_type: "authorization_code",
+      }),
+    });
+    
+    if (!tokenResponse.ok) {
+      const errorBody = await tokenResponse.json();
+      console.error('Google token exchange failed:', errorBody);
+      return c.json({ error: "Failed to exchange code for token" }, 400);
+    }
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.access_token;
+    
+    const userInfoResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+        },
+    });
 
-  setCookie(c, MOCHA_SESSION_TOKEN_COOKIE_NAME, sessionToken, {
-    httpOnly: true,
-    path: "/",
-    sameSite: "none",
-    secure: true,
-    maxAge: 60 * 24 * 60 * 60, // 60 days
-  });
+    if (!userInfoResponse.ok) {
+        return c.json({ error: "Failed to fetch user info" }, 400);
+    }
+    const userInfo = await userInfoResponse.json();
+    
+    const user = {
+        id: userInfo.id,
+        email: userInfo.email,
+    };
+    
+    const token = await sign({ user }, c.env.JWT_SECRET);
+    
+    setCookie(c, SESSION_COOKIE_NAME, token, {
+      httpOnly: true,
+      path: "/",
+      sameSite: "none",
+      secure: true,
+      maxAge: 60 * 24 * 60 * 60, // 60 days
+    });
 
-  return c.json({ success: true }, 200);
+    return c.json({ success: true }, 200);
+
+  } catch (error) {
+    console.error('Session creation failed:', error);
+    return c.json({ error: "Internal server error during session creation" }, 500);
+  }
 });
 
 app.get("/api/users/me", authMiddleware, async (c) => {
@@ -62,16 +108,7 @@ app.get("/api/users/me", authMiddleware, async (c) => {
 });
 
 app.get('/api/logout', async (c) => {
-  const sessionToken = getCookie(c, MOCHA_SESSION_TOKEN_COOKIE_NAME);
-
-  if (typeof sessionToken === 'string') {
-    await deleteSession(sessionToken, {
-      apiUrl: c.env.MOCHA_USERS_SERVICE_API_URL,
-      apiKey: c.env.MOCHA_USERS_SERVICE_API_KEY,
-    });
-  }
-
-  setCookie(c, MOCHA_SESSION_TOKEN_COOKIE_NAME, '', {
+  setCookie(c, SESSION_COOKIE_NAME, '', {
     httpOnly: true,
     path: '/',
     sameSite: 'none',
