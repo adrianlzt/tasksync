@@ -42,6 +42,11 @@ const getOAuthService = (env: Env) => new OAuthService(getDbService(env));
 app.post("/api/sessions", async (c) => {
   const body = await c.req.json();
 
+  if (!c.env.GOOGLE_CLIENT_ID || !c.env.GOOGLE_CLIENT_SECRET) {
+    console.error("Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET worker environment variables.");
+    return c.json({ error: "Server configuration error." }, 500);
+  }
+
   if (!body.code) {
     return c.json({ error: "No authorization code provided" }, 400);
   }
