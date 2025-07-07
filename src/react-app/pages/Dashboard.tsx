@@ -22,7 +22,7 @@ import SettingsModal from '@/react-app/components/SettingsModal';
 export default function Dashboard() {
   const { user, logout, accessToken } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [taskLists, setTaskLists] = useState<TaskList[]>([]);
+  const [_taskLists, setTaskLists] = useState<TaskList[]>([]);
   const [notes, setNotes] = useState<KeepNote[]>([]);
   const [taskToTaskListMap, setTaskToTaskListMap] = useState<Record<string, string>>({});
   const [taskListTitleMap, setTaskListTitleMap] = useState<Record<string, string>>({});
@@ -154,8 +154,7 @@ export default function Dashboard() {
     if (type === 'all' || type === 'notes') {
       results.notes = notes.filter(note =>
         note.title?.toLowerCase().includes(lowerCaseQuery) ||
-        // Assuming `textContent` for note body from `KeepNote` type
-        note.textContent?.toLowerCase().includes(lowerCaseQuery)
+        note.content?.toLowerCase().includes(lowerCaseQuery)
       );
     }
 

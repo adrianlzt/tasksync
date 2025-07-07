@@ -17,7 +17,7 @@ export default function ChatInterface({ onOpenSettings }: ChatInterfaceProps) {
   const [pendingToolCall, setPendingToolCall] = useState<ToolCallConfirmation | null>(null);
   const [openaiConfigured, setOpenaiConfigured] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, _setLoading] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

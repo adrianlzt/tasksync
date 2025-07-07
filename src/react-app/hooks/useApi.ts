@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Task, TaskList, KeepNote, SearchRequest, ChatRequest, ChatMessage } from '@/shared/types';
+import { Task, TaskList, KeepNote, SearchRequest, ChatRequest } from '@/shared/types';
 
 export function useApi() {
   const [loading, setLoading] = useState(false);
