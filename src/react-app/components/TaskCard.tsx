@@ -29,7 +29,7 @@ export default function TaskCard({ task, onDelete, onToggleComplete, taskListTit
         </button>
         
         <div className="flex-1 min-w-0">
-          <h3 className={`font-medium ${isCompleted ? 'line-through text-gray-500' : 'text-gray-900'} break-words`}>
+          <h3 className={`font-medium ${isCompleted ? 'line-through text-gray-500' : 'text-gray-900'} break-all`}>
             {task.title}
           </h3>
 
