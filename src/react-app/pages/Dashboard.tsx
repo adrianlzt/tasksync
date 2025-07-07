@@ -29,9 +29,38 @@ export default function Dashboard() {
   }, [user]);
 
   const handleSync = async () => {
-    // Sync functionality is disabled in client-only mode.
     setSyncing(true);
-    setTimeout(() => setSyncing(false), 1000);
+    setError(null);
+
+    // In client-only mode, we'll use some mock data.
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    try {
+      const mockTasks: Task[] = [
+        { id: 't1', title: 'Finalize Q3 report', status: 'needsAction' },
+        { id: 't2', title: 'Schedule dentist appointment', status: 'needsAction' },
+        { id: 't3', title: 'Buy plane tickets', status: 'needsAction' },
+        { id: 't4', title: 'Review PR #123', status: 'completed' },
+        { id: 't5', title: 'Pick up dry cleaning', status: 'completed' },
+      ];
+
+      const mockNotes: KeepNote[] = [
+        { id: 'n1', title: 'Meeting Notes 2025-10-26', textContent: '- Discussed Q4 roadmap\n- Action items for team', pinned: 1 },
+        { id: 'n2', title: 'Recipe for Lasagna', textContent: 'Ingredients: pasta, ground beef, tomato sauce, cheese...', pinned: 0 },
+        { id: 'n3', title: 'Vacation Ideas', textContent: '- Japan\n- Italy\n- New Zealand', pinned: 1 },
+      ];
+
+      setTasks(mockTasks);
+      setNotes(mockNotes);
+      setGoogleConnected(true);
+
+    } catch (err) {
+      setError('Failed to sync data. Please try again.');
+      console.error(err);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const handleSearch = async (query: string, type: 'all' | 'tasks' | 'notes') => {
