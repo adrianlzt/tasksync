@@ -43,7 +43,7 @@ export default function TaskCard({ task, onDelete, onToggleComplete, taskListTit
           {task.notes && (
             <div className="mt-2 flex items-start gap-1">
               <FileText className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-gray-600 line-clamp-2">{task.notes}</p>
+              <p className="text-sm text-gray-600 line-clamp-2 break-all">{task.notes}</p>
             </div>
           )}
           
