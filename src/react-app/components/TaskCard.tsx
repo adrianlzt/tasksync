@@ -1,14 +1,15 @@
-import { CheckCircle2, Circle, Calendar, FileText, Trash2 } from 'lucide-react';
+import { CheckCircle2, Circle, Calendar, FileText, Trash2, Folder } from 'lucide-react';
 import { Task } from '@/shared/types';
 import { format } from 'date-fns';
 
 interface TaskCardProps {
   task: Task;
+  taskListTitle?: string;
   onDelete?: (taskId: string) => void;
   onToggleComplete?: (taskId: string, completed: boolean) => void;
 }
 
-export default function TaskCard({ task, onDelete, onToggleComplete }: TaskCardProps) {
+export default function TaskCard({ task, onDelete, onToggleComplete, taskListTitle }: TaskCardProps) {
   const isCompleted = task.status === 'completed';
   const dueDate = task.due_date ? new Date(task.due_date) : null;
   const isOverdue = dueDate && dueDate < new Date() && !isCompleted;
@@ -31,6 +32,13 @@ export default function TaskCard({ task, onDelete, onToggleComplete }: TaskCardP
           <h3 className={`font-medium ${isCompleted ? 'line-through text-gray-500' : 'text-gray-900'}`}>
             {task.title}
           </h3>
+
+          {taskListTitle && (
+            <div className="mt-2 flex items-center gap-1 text-gray-500">
+              <Folder className="w-4 h-4" />
+              <span className="text-sm">{taskListTitle}</span>
+            </div>
+          )}
           
           {task.notes && (
             <div className="mt-2 flex items-start gap-1">
