@@ -67,10 +67,33 @@ export default function Dashboard() {
     }
   };
 
-  const handleSearch = async (query: string, type: 'all' | 'tasks' | 'notes') => {
-    // Search is not implemented in client-only mode.
-    console.log("Search is not implemented in client-only mode.");
-    setSearchResults(null);
+  const handleSearch = (query: string, type: 'all' | 'tasks' | 'notes') => {
+    if (!query.trim()) {
+      clearSearch();
+      return;
+    }
+    setLoading(true);
+    const lowerCaseQuery = query.toLowerCase();
+
+    const results: { tasks?: Task[]; notes?: KeepNote[] } = {};
+
+    if (type === 'all' || type === 'tasks') {
+      results.tasks = tasks.filter(task =>
+        task.title?.toLowerCase().includes(lowerCaseQuery) ||
+        task.notes?.toLowerCase().includes(lowerCaseQuery)
+      );
+    }
+
+    if (type === 'all' || type === 'notes') {
+      results.notes = notes.filter(note =>
+        note.title?.toLowerCase().includes(lowerCaseQuery) ||
+        // Assuming `textContent` for note body from `KeepNote` type
+        note.textContent?.toLowerCase().includes(lowerCaseQuery)
+      );
+    }
+
+    setSearchResults(results);
+    setLoading(false);
   };
 
   const handleDeleteTask = async (taskId: string) => {
