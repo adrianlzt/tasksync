@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, CheckCircle, X, Settings } from 'lucide-react';
-import { useApi } from '@/react-app/hooks/useApi';
 import { ChatMessage } from '@/shared/types';
 
 interface ToolCallConfirmation {
@@ -18,7 +17,7 @@ export default function ChatInterface({ onOpenSettings }: ChatInterfaceProps) {
   const [pendingToolCall, setPendingToolCall] = useState<ToolCallConfirmation | null>(null);
   const [openaiConfigured, setOpenaiConfigured] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { sendChatMessage, executeToolCall, getUserSettings, loading } = useApi();
+  const [loading, setLoading] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -34,10 +33,11 @@ export default function ChatInterface({ onOpenSettings }: ChatInterfaceProps) {
 
   const checkOpenAIConfig = async () => {
     try {
-      const settings = await getUserSettings();
-      setOpenaiConfigured(settings.openai_api_key_configured);
+      const apiKey = localStorage.getItem('openai_api_key');
+      setOpenaiConfigured(!!apiKey);
     } catch (error) {
       console.error('Failed to check OpenAI configuration:', error);
+      setOpenaiConfigured(false);
     }
   };
 
@@ -62,50 +62,19 @@ export default function ChatInterface({ onOpenSettings }: ChatInterfaceProps) {
       content: userMessage,
     });
 
-    try {
-      const response = await sendChatMessage({
-        message: userMessage,
-        context: messages.slice(-5), // Last 5 messages for context
-      });
-
-      // Add assistant response
-      addMessage({
-        role: 'assistant',
-        content: response.response,
-      });
-
-      // Handle tool calls
-      if (response.tool_calls && response.tool_calls.length > 0) {
-        const toolCall = response.tool_calls[0]; // Handle first tool call
-        setPendingToolCall({
-          toolCall,
-          message: `Do you want me to ${getToolCallDescription(toolCall)}?`,
-        });
-      }
-    } catch (error) {
-      addMessage({
-        role: 'assistant',
-        content: 'Sorry, I encountered an error processing your request. Please try again.',
-      });
-    }
+    addMessage({
+      role: 'assistant',
+      content: 'AI chat is not available in the client-only version of this app.',
+    });
   };
 
   const handleConfirmToolCall = async () => {
     if (!pendingToolCall) return;
 
-    try {
-      const result = await executeToolCall(pendingToolCall.toolCall);
-      
-      addMessage({
-        role: 'assistant',
-        content: result.result,
-      });
-    } catch (error) {
-      addMessage({
-        role: 'assistant',
-        content: 'Sorry, I encountered an error executing that action.',
-      });
-    }
+    addMessage({
+      role: 'assistant',
+      content: 'Sorry, I encountered an error executing that action.',
+    });
 
     setPendingToolCall(null);
   };
@@ -116,21 +85,6 @@ export default function ChatInterface({ onOpenSettings }: ChatInterfaceProps) {
       content: 'Action cancelled. Is there anything else I can help you with?',
     });
     setPendingToolCall(null);
-  };
-
-  const getToolCallDescription = (toolCall: any) => {
-    switch (toolCall.tool) {
-      case 'search':
-        return `search for "${toolCall.parameters.query}"`;
-      case 'add_task':
-        return `add a new task "${toolCall.parameters.title}"`;
-      case 'update_task':
-        return `update the task`;
-      case 'delete_task':
-        return `delete the task`;
-      default:
-        return 'perform this action';
-    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
