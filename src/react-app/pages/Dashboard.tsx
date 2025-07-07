@@ -15,6 +15,7 @@ export default function Dashboard() {
   const [taskLists, setTaskLists] = useState<TaskList[]>([]);
   const [notes, setNotes] = useState<KeepNote[]>([]);
   const [taskToTaskListMap, setTaskToTaskListMap] = useState<Record<string, string>>({});
+  const [taskListTitleMap, setTaskListTitleMap] = useState<Record<string, string>>({});
   const [searchResults, setSearchResults] = useState<{ tasks?: Task[]; notes?: KeepNote[] } | null>(null);
   const [activeTab, setActiveTab] = useState<'tasks' | 'notes' | 'chat'>('tasks');
   const [syncing, setSyncing] = useState(false);
@@ -41,6 +42,7 @@ export default function Dashboard() {
     try {
       const fetchedTaskLists = await getTaskLists(accessToken);
       setTaskLists(fetchedTaskLists);
+      setTaskListTitleMap(Object.fromEntries(fetchedTaskLists.map(l => [l.id, l.title])));
 
       const taskMap: Record<string, string> = {};
       const allTasks: Task[] = [];
@@ -294,6 +296,7 @@ export default function Dashboard() {
                     key={task.id}
                     task={task}
                     onDelete={handleDeleteTask}
+                    taskListTitle={taskListTitleMap[taskToTaskListMap[task.id]]}
                   />
                 ))}
               </div>
@@ -316,6 +319,7 @@ export default function Dashboard() {
                       key={task.id}
                       task={task}
                       onDelete={handleDeleteTask}
+                      taskListTitle={taskListTitleMap[taskToTaskListMap[task.id]]}
                     />
                   ))}
                 </div>
