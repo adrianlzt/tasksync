@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useEffect, ReactNode, useCallback } from 'react';
+import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 
 interface User {
   id: string;
@@ -9,45 +9,40 @@ interface AuthContextType {
   user: User | null;
   setUser: (user: User | null) => void;
   isPending: boolean;
-  logout: () => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, _setUser] = useState<User | null>(null);
   const [isPending, setIsPending] = useState(true);
 
-  const checkUserSession = useCallback(async () => {
+  useEffect(() => {
     try {
-      const response = await fetch('/api/users/me');
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-      } else {
-        setUser(null);
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        _setUser(JSON.parse(storedUser));
       }
     } catch (error) {
-      console.error('Failed to fetch user session:', error);
-      setUser(null);
+      console.error('Failed to load user from localStorage:', error);
+      _setUser(null);
     } finally {
       setIsPending(false);
     }
   }, []);
 
-
-  useEffect(() => {
-    checkUserSession();
-  }, [checkUserSession]);
-
-  const logout = async () => {
-    try {
-      await fetch('/api/logout', { method: 'GET' });
-    } catch (error) {
-      console.error('Logout failed:', error);
-    } finally {
-      setUser(null);
+  const setUser = (user: User | null) => {
+    _setUser(user);
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('user');
     }
+  };
+
+  const logout = () => {
+    setUser(null);
   };
 
   const value = { user, setUser, isPending, logout };

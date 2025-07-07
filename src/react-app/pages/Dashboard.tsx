@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { RotateCcw, RefreshCw, MessageSquare, CheckSquare, StickyNote, User, LogOut, Link, AlertCircle, Settings } from 'lucide-react';
 import { useAuth } from "../providers/AuthProvider";
-import { useApi } from '@/react-app/hooks/useApi';
 import { Task, TaskList, KeepNote } from '@/shared/types';
 import SearchBar from '@/react-app/components/SearchBar';
 import TaskCard from '@/react-app/components/TaskCard';
@@ -21,90 +20,31 @@ export default function Dashboard() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  const { 
-    getTasks, 
-    getTaskLists, 
-    getNotes, 
-    search, 
-    syncTasks, 
-    deleteTask,
-    checkGoogleOAuthStatus,
-    requestGoogleOAuth,
-    loading, 
-    error 
-  } = useApi();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load initial data
+  // Set Google connection status based on user auth state
   useEffect(() => {
-    loadData();
-    checkGoogleStatus();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      const [tasksData, taskListsData, notesData] = await Promise.all([
-        getTasks(),
-        getTaskLists(),
-        getNotes(),
-      ]);
-      
-      setTasks(tasksData);
-      setTaskLists(taskListsData);
-      setNotes(notesData);
-    } catch (err) {
-      console.error('Failed to load data:', err);
-    }
-  };
-
-  const checkGoogleStatus = async () => {
-    try {
-      const status = await checkGoogleOAuthStatus();
-      setGoogleConnected(status.connected);
-    } catch (err) {
-      console.error('Failed to check Google status:', err);
-    }
-  };
-
-  const handleConnectGoogle = async () => {
-    try {
-      const { authUrl } = await requestGoogleOAuth();
-      window.location.href = authUrl;
-    } catch (err) {
-      console.error('Failed to request Google OAuth:', err);
-    }
-  };
+    setGoogleConnected(!!user);
+  }, [user]);
 
   const handleSync = async () => {
-    if (!googleConnected) {
-      await handleConnectGoogle();
-      return;
-    }
-
+    // Sync functionality is disabled in client-only mode.
+    console.log("Sync is not implemented in client-only mode.");
     setSyncing(true);
-    try {
-      await syncTasks();
-      await loadData(); // Reload data after sync
-    } catch (err) {
-      console.error('Sync failed:', err);
-    } finally {
-      setSyncing(false);
-    }
+    setTimeout(() => setSyncing(false), 1000);
   };
 
   const handleSearch = async (query: string, type: 'all' | 'tasks' | 'notes') => {
-    try {
-      const results = await search({ query, type });
-      setSearchResults(results);
-    } catch (err) {
-      console.error('Search failed:', err);
-    }
+    // Search is not implemented in client-only mode.
+    console.log("Search is not implemented in client-only mode.");
+    setSearchResults(null);
   };
 
   const handleDeleteTask = async (taskId: string) => {
     try {
-      await deleteTask(taskId);
+      // Only delete from local state
       setTasks(prev => prev.filter(t => t.id !== taskId));
-      // Also update search results if they exist
       if (searchResults?.tasks) {
         setSearchResults(prev => ({
           ...prev,
@@ -113,6 +53,7 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error('Failed to delete task:', err);
+      setError('Failed to delete task.');
     }
   };
 
@@ -290,7 +231,7 @@ export default function Dashboard() {
               </div>
               {(searchResults?.tasks || pendingTasks).length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  {searchResults ? 'No tasks found' : 'No pending tasks'}
+                  {searchResults ? 'No tasks found' : 'No pending tasks. Sync with Google to get started.'}
                 </div>
               )}
             </div>
@@ -343,7 +284,7 @@ export default function Dashboard() {
               </div>
               {(searchResults?.notes || regularNotes).length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  {searchResults ? 'No notes found' : 'No notes available'}
+                  {searchResults ? 'No notes found' : 'No notes available. Sync with Google to get started.'}
                 </div>
               )}
             </div>

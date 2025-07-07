@@ -10,25 +10,26 @@ export default function Login() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const handleLogin = useGoogleLogin({
-    onSuccess: async (codeResponse) => {
+    onSuccess: async (tokenResponse) => {
       setIsLoggingIn(true);
       try {
-        const res = await fetch("/api/sessions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: codeResponse.code }),
+        const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: {
+            'Authorization': `Bearer ${tokenResponse.access_token}`,
+          },
         });
 
-        if (!res.ok) {
-          throw new Error("Failed to create session");
+        if (!userInfoRes.ok) {
+          throw new Error('Failed to fetch user info from Google');
         }
         
-        const userRes = await fetch("/api/users/me");
-        if (!userRes.ok) {
-          throw new Error("Failed to fetch user data");
-        }
-        const userData = await userRes.json();
-        setUser(userData);
+        const userInfo = await userInfoRes.json();
+        
+        setUser({
+          id: userInfo.sub,
+          email: userInfo.email,
+        });
+
         navigate("/");
       } catch (error) {
         console.error("Login failed", error);
@@ -36,7 +37,7 @@ export default function Login() {
         setIsLoggingIn(false);
       }
     },
-    flow: 'auth-code',
+    flow: 'implicit',
   });
 
   if (user) {
