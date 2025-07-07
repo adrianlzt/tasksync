@@ -30,7 +30,6 @@ export default function Dashboard() {
 
   const handleSync = async () => {
     // Sync functionality is disabled in client-only mode.
-    console.log("Sync is not implemented in client-only mode.");
     setSyncing(true);
     setTimeout(() => setSyncing(false), 1000);
   };
