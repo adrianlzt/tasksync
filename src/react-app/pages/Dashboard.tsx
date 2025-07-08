@@ -104,7 +104,6 @@ export default function Dashboard() {
       setTasks(allTasks);
       setTaskToTaskListMap(taskMap);
 
-      setGoogleConnected(true);
     } catch (err) {
       setError('Failed to sync data from Google. Please try again.');
       console.error(err);
