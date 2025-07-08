@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { RotateCcw, RefreshCw, MessageSquare, CheckSquare, User, LogOut, Link, AlertCircle, Settings, ArrowDownAz, Calendar, ArrowUp, ArrowDown, X } from 'lucide-react';
+import { RotateCcw, RefreshCw, MessageSquare, CheckSquare, User, LogOut, Link, AlertCircle, Settings, ArrowDownAz, Calendar, ArrowUp, ArrowDown, X, ListOrdered } from 'lucide-react';
 import { useAuth } from "../providers/AuthProvider";
 import { Task, TaskList } from '@/shared/types';
 import { getTaskLists, getTasks, deleteTask, updateTask } from '../lib/googleApi';
@@ -32,7 +32,7 @@ export default function Dashboard() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [sortType, setSortType] = useState<'date' | 'alphabetical'>('date');
+  const [sortType, setSortType] = useState<'position' | 'date' | 'alphabetical'>('position');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const [loading, setLoading] = useState(true);
@@ -217,7 +217,7 @@ export default function Dashboard() {
     await handleUpdateTask(taskId, { status });
   };
 
-  const handleSortChange = (newSortType: 'date' | 'alphabetical') => {
+  const handleSortChange = (newSortType: 'position' | 'date' | 'alphabetical') => {
     if (sortType === newSortType) {
       setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
     } else {
@@ -281,7 +281,9 @@ export default function Dashboard() {
     const sortTasks = (taskArray: Task[]) => {
       return [...taskArray].sort((a, b) => {
         let comparison = 0;
-        if (sortType === 'alphabetical') {
+        if (sortType === 'position') {
+          comparison = (a.position || '').localeCompare(b.position || '');
+        } else if (sortType === 'alphabetical') {
           comparison = (a.title || '').localeCompare(b.title || '');
         } else { // sort by 'date'
           const dateA_str = a.due || a.updated;
@@ -319,7 +321,9 @@ export default function Dashboard() {
   const sortedPendingTasks = useMemo(() => {
     return [...pendingTasks].sort((a, b) => {
       let comparison = 0;
-      if (sortType === 'alphabetical') {
+      if (sortType === 'position') {
+        comparison = (a.position || '').localeCompare(b.position || '');
+      } else if (sortType === 'alphabetical') {
         comparison = (a.title || '').localeCompare(b.title || '');
       } else { // sort by 'date'
         const dateA_str = a.due || a.updated;
@@ -340,7 +344,9 @@ export default function Dashboard() {
   const sortedCompletedTasks = useMemo(() => {
     return [...completedTasks].sort((a, b) => {
       let comparison = 0;
-      if (sortType === 'alphabetical') {
+      if (sortType === 'position') {
+        comparison = (a.position || '').localeCompare(b.position || '');
+      } else if (sortType === 'alphabetical') {
         comparison = (a.title || '').localeCompare(b.title || '');
       } else { // sort by 'date'
         const dateA_str = a.due || a.updated;
@@ -534,6 +540,16 @@ export default function Dashboard() {
                 {!searchResults && (
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-gray-500">Sort by:</span>
+                    <button
+                      onClick={() => handleSortChange('position')}
+                      className={`flex items-center gap-1 px-2 py-1 rounded transition-colors ${sortType === 'position' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                    >
+                      <ListOrdered className="w-4 h-4" />
+                      Position
+                      {sortType === 'position' && (
+                        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />
+                      )}
+                    </button>
                     <button
                       onClick={() => handleSortChange('date')}
                       className={`flex items-center gap-1 px-2 py-1 rounded transition-colors ${sortType === 'date' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
