@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { RotateCcw, RefreshCw, MessageSquare, CheckSquare, StickyNote, User, LogOut, Link, AlertCircle, Settings } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { RotateCcw, RefreshCw, MessageSquare, CheckSquare, StickyNote, User, LogOut, Link, AlertCircle, Settings, ArrowDownAz, Calendar } from 'lucide-react';
 import { useAuth } from "../providers/AuthProvider";
 import { Task, TaskList, KeepNote } from '@/shared/types';
 import { getTaskLists, getTasks, deleteTask, updateTask } from '../lib/googleApi';
@@ -32,6 +32,7 @@ export default function Dashboard() {
   const [googleConnected, setGoogleConnected] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [sortType, setSortType] = useState<'date' | 'alphabetical'>('date');
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -232,6 +233,39 @@ export default function Dashboard() {
 
   const completedTasks = tasks.filter(t => t.status === 'completed');
   const pendingTasks = tasks.filter(t => t.status !== 'completed');
+
+  const sortedPendingTasks = useMemo(() => {
+    return [...pendingTasks].sort((a, b) => {
+      if (sortType === 'alphabetical') {
+        return (a.title || '').localeCompare(b.title || '');
+      }
+      // sort by 'date'
+      const dateA = a.due_date ? new Date(a.due_date).getTime() : Infinity;
+      const dateB = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+
+      if (dateA === dateB) {
+        return (a.title || '').localeCompare(b.title || '');
+      }
+      return dateA - dateB;
+    });
+  }, [pendingTasks, sortType]);
+
+  const sortedCompletedTasks = useMemo(() => {
+    return [...completedTasks].sort((a, b) => {
+      if (sortType === 'alphabetical') {
+          return (a.title || '').localeCompare(b.title || '');
+      }
+      // sort by 'date' of completion (using 'updated')
+      const dateA = a.updated ? new Date(a.updated).getTime() : 0;
+      const dateB = b.updated ? new Date(b.updated).getTime() : 0;
+    
+      if (dateA === dateB) {
+          return (a.title || '').localeCompare(b.title || '');
+      }
+      return dateB - dateA; // descending
+    });
+  }, [completedTasks, sortType]);
+
   const pinnedNotes = notes.filter(n => n.pinned === 1);
   const regularNotes = notes.filter(n => n.pinned === 0);
 
@@ -386,11 +420,32 @@ export default function Dashboard() {
           <div className="space-y-6">
             {/* Pending Tasks */}
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                {searchResults ? 'Search Results' : 'Pending Tasks'}
-              </h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {searchResults ? 'Search Results' : 'Pending Tasks'}
+                </h2>
+                {!searchResults && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-gray-500">Sort by:</span>
+                    <button
+                      onClick={() => setSortType('date')}
+                      className={`flex items-center gap-1 px-2 py-1 rounded transition-colors ${sortType === 'date' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                    >
+                      <Calendar className="w-4 h-4" />
+                      Date
+                    </button>
+                    <button
+                      onClick={() => setSortType('alphabetical')}
+                      className={`flex items-center gap-1 px-2 py-1 rounded transition-colors ${sortType === 'alphabetical' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                    >
+                      <ArrowDownAz className="w-4 h-4" />
+                      Alphabetical
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="grid gap-3">
-                {(searchResults?.tasks || pendingTasks).map((task) => (
+                {(searchResults?.tasks || sortedPendingTasks).map((task) => (
                   <TaskCard
                     key={task.id}
                     task={task}
@@ -415,7 +470,7 @@ export default function Dashboard() {
                   Completed Tasks
                 </h2>
                 <div className="grid gap-3">
-                  {completedTasks.map((task) => (
+                  {sortedCompletedTasks.map((task) => (
                     <TaskCard
                       key={task.id}
                       task={task}
