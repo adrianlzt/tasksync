@@ -3,15 +3,38 @@ import { useState, useEffect } from 'react';
 import { Task } from '@/shared/types';
 import { format } from 'date-fns';
 
+const Highlight = ({ text, highlight }: { text: string, highlight: string }) => {
+  if (!highlight.trim() || !text) {
+    return <>{text}</>;
+  }
+  const sanitizedHighlight = highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${sanitizedHighlight})`, 'gi');
+  const parts = text.split(regex);
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === highlight.toLowerCase() ? (
+          <mark key={i} className="bg-yellow-200 px-0 rounded-sm">
+            {part}
+          </mark>
+        ) : (
+          <>{part}</>
+        )
+      )}
+    </>
+  );
+};
+
 interface TaskCardProps {
   task: Task;
   taskListTitle?: string;
   onDelete?: (taskId: string) => void;
   onToggleComplete?: (taskId: string, completed: boolean) => void;
   onUpdate?: (taskId: string, updates: Partial<Task>) => void;
+  searchQuery?: string;
 }
 
-export default function TaskCard({ task, onDelete, onToggleComplete, taskListTitle, onUpdate }: TaskCardProps) {
+export default function TaskCard({ task, onDelete, onToggleComplete, taskListTitle, onUpdate, searchQuery }: TaskCardProps) {
   const [currentTitle, setCurrentTitle] = useState(task.title);
 
   useEffect(() => {
@@ -22,6 +45,8 @@ export default function TaskCard({ task, onDelete, onToggleComplete, taskListTit
   const dueDate = task.due ? new Date(task.due) : null;
   const updatedDate = task.updated ? new Date(task.updated) : null;
   const isOverdue = dueDate && dueDate < new Date() && !isCompleted;
+
+  const showNotes = searchQuery && task.notes && task.notes.toLowerCase().includes(searchQuery.toLowerCase());
 
   const handleTitleBlur = () => {
     const newTitle = currentTitle ? currentTitle.trim() : '';
@@ -47,15 +72,27 @@ export default function TaskCard({ task, onDelete, onToggleComplete, taskListTit
         </button>
         
         <div className="flex-1 min-w-0">
-          <input
-            value={currentTitle || ''}
-            onChange={(e) => setCurrentTitle(e.target.value)}
-            onBlur={handleTitleBlur}
-            onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-            className={`font-medium w-full bg-transparent focus:outline-none focus:bg-gray-50 rounded px-1 -mx-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-900'}`}
-            disabled={isCompleted}
-            placeholder="Task title"
-          />
+          {searchQuery ? (
+            <div className={`font-medium w-full bg-transparent px-1 -mx-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+              <Highlight text={task.title || ''} highlight={searchQuery} />
+            </div>
+          ) : (
+            <input
+              value={currentTitle || ''}
+              onChange={(e) => setCurrentTitle(e.target.value)}
+              onBlur={handleTitleBlur}
+              onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+              className={`font-medium w-full bg-transparent focus:outline-none focus:bg-gray-50 rounded px-1 -mx-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-900'}`}
+              disabled={isCompleted}
+              placeholder="Task title"
+            />
+          )}
+
+          {showNotes && (
+            <div className="mt-1 text-sm text-gray-600 px-1 -mx-1">
+              <Highlight text={task.notes!} highlight={searchQuery} />
+            </div>
+          )}
 
           {taskListTitle && (
             <div className="mt-2 flex items-center gap-1 text-gray-500">

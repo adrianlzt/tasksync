@@ -25,6 +25,7 @@ export default function Dashboard() {
   const [taskToTaskListMap, setTaskToTaskListMap] = useState<Record<string, string>>({});
   const [taskListTitleMap, setTaskListTitleMap] = useState<Record<string, string>>({});
   const [searchResults, setSearchResults] = useState<{ tasks?: Task[] } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<string>('all');
   const [syncing, setSyncing] = useState(false);
   const [googleConnected, setGoogleConnected] = useState(false);
@@ -137,6 +138,7 @@ export default function Dashboard() {
       return;
     }
     setLoading(true);
+    setSearchQuery(query);
     const lowerCaseQuery = query.toLowerCase();
 
     const tasksById = new Map(tasks.map(t => [t.id, t]));
@@ -255,6 +257,7 @@ export default function Dashboard() {
 
   const clearSearch = () => {
     setSearchResults(null);
+    setSearchQuery("");
   };
 
   const sourceTasks = useMemo(() => searchResults?.tasks || tasks, [searchResults, tasks]);
@@ -371,6 +374,7 @@ export default function Dashboard() {
         onToggleComplete={handleToggleComplete}
         onUpdate={handleUpdateTask}
         taskListTitle={taskListTitleMap[taskToTaskListMap[task.id]]}
+        searchQuery={searchQuery}
       />
       {tasksByParent[task.id] && tasksByParent[task.id].length > 0 && (
         <div className="pt-3 pl-5 ml-5 mt-3 border-l-2 border-gray-200 space-y-3">
