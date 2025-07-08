@@ -12,10 +12,10 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       manifest: {
-        name: "TaskSync Chatbot",
+        name: "TaskSync",
         short_name: "TaskSync",
         description:
-          "TaskSync Chatbot: Chat with your Google Tasks & Keep, powered by AI. Sync, search, and manage all effortlessly in one place.",
+          "TaskSync: Chat with your Google Tasks & Keep, powered by AI. Sync, search, and manage all effortlessly in one place.",
         theme_color: "#ffffff",
         background_color: "#ffffff",
         display: "standalone",

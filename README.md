@@ -1,6 +1,6 @@
-# TaskSync Chat
+# TaskSync
 
-TaskSync Chat is a web application that helps you manage your Google Tasks with an integrated AI chat assistant. It provides a clean interface to view, search, and manage your tasks, and uses a powerful chat interface to interact with your data in a conversational way.
+TaskSync is a web application that helps you manage your Google Tasks with an integrated AI chat assistant. It provides a clean interface to view, search, and manage your tasks, and uses a powerful chat interface to interact with your data in a conversational way.
 
 ## Features
 
@@ -56,5 +56,5 @@ Follow these instructions to get a local copy up and running for development and
 3.  **View Tasks**: Your tasks will be displayed on the "Tasks" tab, separated into "Pending" and "Completed" sections. You can see task details like title, notes, and due date.
 4.  **Search**: Use the search bar at the top to filter tasks by keywords.
 5.  **Delete a Task**: Click the trash icon on a task card to delete it. This action will be synced with your Google Tasks.
-6.  **AI Chat**: Navigate to the "AI Chat" tab to interact with the chatbot.
+6.  **AI Chat**: Navigate to the "AI Chat" tab to interact with the AI assistant.
 7.  **Logout**: Click on your user email at the top right to open the user menu, where you can sign out.
