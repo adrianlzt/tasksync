@@ -8,9 +8,11 @@ export default function Login() {
   const { user, login, isPending: isAuthPending } = useAuth();
   const navigate = useNavigate();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const handleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
+      setLoginError(null);
       setIsLoggingIn(true);
       try {
         const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
@@ -33,8 +35,19 @@ export default function Login() {
         navigate("/");
       } catch (error) {
         console.error("Login failed", error);
+        setLoginError('An error occurred while fetching your user information.');
       } finally {
         setIsLoggingIn(false);
+      }
+    },
+    onError: (error) => {
+      console.error('Google Login Error:', error);
+      if (error.error === 'invalid_scope') {
+        setLoginError(
+          "Login failed with an 'invalid_scope' error. This typically means the application is requesting permissions (like for Google Keep) that are not enabled for your project in the Google Cloud Console. Please verify that the necessary APIs are enabled and that your OAuth consent screen is configured correctly."
+        );
+      } else {
+        setLoginError(error.error_description || 'An unknown error occurred during login.');
       }
     },
     flow: 'implicit',
@@ -101,8 +114,16 @@ export default function Login() {
 
           {/* Login Button */}
           <div className="text-center">
+            {loginError && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800">{loginError}</p>
+              </div>
+            )}
             <button
-              onClick={() => handleLogin()}
+              onClick={() => {
+                setLoginError(null);
+                handleLogin();
+              }}
               disabled={isAuthPending || isLoggingIn}
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium py-3 px-4 rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
             >
