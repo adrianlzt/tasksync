@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Filter } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 interface SearchBarProps {
   onSearch: (query: string, type: 'all' | 'tasks' | 'notes') => void;
@@ -8,12 +8,11 @@ interface SearchBarProps {
 
 export default function SearchBar({ onSearch, loading }: SearchBarProps) {
   const [query, setQuery] = useState('');
-  const [searchType, setSearchType] = useState<'all' | 'tasks' | 'notes'>('all');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      onSearch(query.trim(), searchType);
+      onSearch(query.trim(), 'all');
     }
   };
 
@@ -29,20 +28,6 @@ export default function SearchBar({ onSearch, loading }: SearchBarProps) {
           className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           disabled={loading}
         />
-      </div>
-
-      <div className="flex items-center gap-2">
-        <Filter className="w-4 h-4 text-gray-400" />
-        <select
-          value={searchType}
-          onChange={(e) => setSearchType(e.target.value as 'all' | 'tasks' | 'notes')}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          disabled={loading}
-        >
-          <option value="all">All</option>
-          <option value="tasks">Tasks</option>
-          <option value="notes">Notes</option>
-        </select>
       </div>
 
       <button
