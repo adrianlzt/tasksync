@@ -98,7 +98,7 @@ export default function Dashboard() {
 
     try {
       const fetchedTaskLists = await getTaskLists(accessToken);
-      
+
       const taskMap: Record<string, string> = {};
       const allTasks: Task[] = [];
 
@@ -123,10 +123,10 @@ export default function Dashboard() {
       setTaskListTitleMap(Object.fromEntries(fetchedTaskLists.map(l => [l.id, l.title])));
       setTasks(allTasks);
       setTaskToTaskListMap(taskMap);
-      
+
       // Google Keep API is not public, so we clear notes on sync.
       setNotes([]);
-      
+
       setGoogleConnected(true);
     } catch (err) {
       setError('Failed to sync data from Google. Please try again.');
@@ -177,7 +177,7 @@ export default function Dashboard() {
     }
 
     const originalTasks = [...tasks];
-    
+
     // Optimistic update of local state
     setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, ...updates } : t)));
 
@@ -222,7 +222,7 @@ export default function Dashboard() {
     try {
       await deleteTask(accessToken, taskListId, taskId);
       await deleteStoredTask(taskId);
-      
+
       // On success, remove from local state
       setTasks(prev => prev.filter(t => t.id !== taskId));
       if (searchResults?.tasks) {
@@ -250,8 +250,10 @@ export default function Dashboard() {
       if (sortType === 'alphabetical') {
         comparison = (a.title || '').localeCompare(b.title || '');
       } else { // sort by 'date'
-        const dateA = a.due_date ? new Date(a.due_date).getTime() : Infinity;
-        const dateB = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+        const dateA_str = a.due || a.updated;
+        const dateB_str = b.due || b.updated;
+        const dateA = dateA_str ? new Date(dateA_str).getTime() : Infinity;
+        const dateB = dateB_str ? new Date(dateB_str).getTime() : Infinity;
 
         if (dateA === dateB) {
           comparison = (a.title || '').localeCompare(b.title || '');
@@ -268,9 +270,11 @@ export default function Dashboard() {
       let comparison = 0;
       if (sortType === 'alphabetical') {
         comparison = (a.title || '').localeCompare(b.title || '');
-      } else { // sort by 'date' of completion (using 'updated')
-        const dateA = a.updated ? new Date(a.updated).getTime() : 0;
-        const dateB = b.updated ? new Date(b.updated).getTime() : 0;
+      } else { // sort by 'date'
+        const dateA_str = a.due || a.updated;
+        const dateB_str = b.due || b.updated;
+        const dateA = dateA_str ? new Date(dateA_str).getTime() : 0;
+        const dateB = dateB_str ? new Date(dateB_str).getTime() : 0;
 
         if (dateA === dateB) {
           comparison = (a.title || '').localeCompare(b.title || '');
@@ -301,7 +305,7 @@ export default function Dashboard() {
               </div>
               <h1 className="text-xl font-bold text-gray-900">TaskKeep Chat</h1>
             </div>
-            
+
             <div className="flex items-center gap-4">
               {/* Google Connection Status */}
               {!googleConnected && (
@@ -400,33 +404,30 @@ export default function Dashboard() {
             <nav className="-mb-px flex space-x-8">
               <button
                 onClick={() => setActiveTab('tasks')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'tasks'
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'tasks'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 <CheckSquare className="w-4 h-4 inline mr-2" />
                 Tasks ({searchResults ? searchResults.tasks?.length || 0 : tasks.length})
               </button>
               <button
                 onClick={() => setActiveTab('notes')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'notes'
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'notes'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 <StickyNote className="w-4 h-4 inline mr-2" />
                 Notes ({searchResults ? searchResults.notes?.length || 0 : notes.length})
               </button>
               <button
                 onClick={() => setActiveTab('chat')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'chat'
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'chat'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 <MessageSquare className="w-4 h-4 inline mr-2" />
                 AI Chat
@@ -556,16 +557,16 @@ export default function Dashboard() {
 
       {/* Click outside to close user menu */}
       {showUserMenu && (
-        <div 
-          className="fixed inset-0 z-40" 
+        <div
+          className="fixed inset-0 z-40"
           onClick={() => setShowUserMenu(false)}
         />
       )}
 
       {/* Settings Modal */}
-      <SettingsModal 
-        isOpen={showSettings} 
-        onClose={() => setShowSettings(false)} 
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
       />
     </div>
   );
