@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { RotateCcw, RefreshCw, MessageSquare, CheckSquare, User, LogOut, Link, AlertCircle, Settings, ArrowDownAz, Calendar, ArrowUp, ArrowDown, Star, X } from 'lucide-react';
+import { RotateCcw, RefreshCw, MessageSquare, CheckSquare, User, LogOut, Link, AlertCircle, Settings, ArrowDownAz, Calendar, ArrowUp, ArrowDown, X } from 'lucide-react';
 import { useAuth } from "../providers/AuthProvider";
 import { Task, TaskList } from '@/shared/types';
 import { getTaskLists, getTasks, deleteTask, updateTask } from '../lib/googleApi';
@@ -310,10 +310,6 @@ export default function Dashboard() {
     if (activeTab === 'all') {
       return topLevelTasks;
     }
-    if (activeTab === 'starred') {
-      // Assuming a `starred` property on tasks.
-      return topLevelTasks.filter(task => (task as any).starred);
-    }
     return topLevelTasks.filter(task => taskToTaskListMap[task.id] === activeTab);
   }, [activeTab, topLevelTasks, taskToTaskListMap]);
 
@@ -510,16 +506,6 @@ export default function Dashboard() {
                   }`}
               >
                 All
-              </button>
-              <button
-                onClick={() => setActiveTab('starred')}
-                className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'starred'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-              >
-                <Star className="w-4 h-4" />
-                Starred
               </button>
               {_taskLists.map((list) => (
                 <button

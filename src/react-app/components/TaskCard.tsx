@@ -49,7 +49,7 @@ export default function TaskCard({ task, onDelete, onToggleComplete, taskListTit
 
   const showNotes = searchQuery && task.notes && task.notes.toLowerCase().includes(searchQuery.toLowerCase());
 
-  const showTaskList = (activeTab === 'all' || activeTab === 'starred') && taskListTitle;
+  const showTaskList = activeTab === 'all' && taskListTitle;
 
   const handleTitleBlur = () => {
     const newTitle = currentTitle ? currentTitle.trim() : '';
