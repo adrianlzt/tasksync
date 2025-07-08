@@ -139,14 +139,39 @@ export default function Dashboard() {
     setLoading(true);
     const lowerCaseQuery = query.toLowerCase();
 
-    const results: { tasks?: Task[] } = {};
+    const tasksById = new Map(tasks.map(t => [t.id, t]));
 
-    if (type === 'all' || type === 'tasks') {
-      results.tasks = tasks.filter(task =>
-        task.title?.toLowerCase().includes(lowerCaseQuery) ||
-        task.notes?.toLowerCase().includes(lowerCaseQuery)
-      );
+    const matchingTasks = tasks.filter(task =>
+      task.title?.toLowerCase().includes(lowerCaseQuery) ||
+      task.notes?.toLowerCase().includes(lowerCaseQuery)
+    );
+
+    const resultTaskSet = new Set<Task>();
+
+    matchingTasks.forEach(matchedTask => {
+      // Add matched task and its ancestors
+      let current: Task | undefined = matchedTask;
+      while (current) {
+        resultTaskSet.add(current);
+        current = current.parent ? tasksById.get(current.parent) : undefined;
+      }
+    });
+
+    // Add all descendants of tasks in the result set
+    const queue: Task[] = [...resultTaskSet];
+    let head = 0;
+    while(head < queue.length) {
+        const current = queue[head++];
+        const children = tasks.filter(t => t.parent === current.id);
+        children.forEach(child => {
+            if(!resultTaskSet.has(child)) {
+                resultTaskSet.add(child);
+                queue.push(child);
+            }
+        });
     }
+
+    const results: { tasks?: Task[] } = { tasks: Array.from(resultTaskSet) };
 
     if (type === 'all' || type === 'notes') {
       // notes functionality is removed.
@@ -234,16 +259,60 @@ export default function Dashboard() {
 
   const sourceTasks = useMemo(() => searchResults?.tasks || tasks, [searchResults, tasks]);
 
+  const { topLevelTasks, tasksByParent } = useMemo(() => {
+    const tasksById = new Map(sourceTasks.map(t => [t.id, t]));
+    const topLevelTasks: Task[] = [];
+    const tasksByParent: Record<string, Task[]> = {};
+
+    sourceTasks.forEach(task => {
+      if (task.parent && tasksById.has(task.parent)) {
+        if (!tasksByParent[task.parent]) {
+          tasksByParent[task.parent] = [];
+        }
+        tasksByParent[task.parent].push(task);
+      } else if (!task.parent) {
+        topLevelTasks.push(task);
+      }
+    });
+
+    const sortTasks = (taskArray: Task[]) => {
+      return [...taskArray].sort((a, b) => {
+        let comparison = 0;
+        if (sortType === 'alphabetical') {
+          comparison = (a.title || '').localeCompare(b.title || '');
+        } else { // sort by 'date'
+          const dateA_str = a.due || a.updated;
+          const dateB_str = b.due || b.updated;
+          const dateA = dateA_str ? new Date(dateA_str).getTime() : Infinity;
+          const dateB = dateB_str ? new Date(dateB_str).getTime() : Infinity;
+
+          if (dateA === dateB) {
+            comparison = (a.title || '').localeCompare(b.title || '');
+          } else {
+            comparison = dateA - dateB;
+          }
+        }
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    };
+
+    for (const parentId in tasksByParent) {
+      tasksByParent[parentId] = sortTasks(tasksByParent[parentId]);
+    }
+
+    return { topLevelTasks, tasksByParent };
+  }, [sourceTasks, sortType, sortDirection]);
+
   const displayedTasks = useMemo(() => {
     if (activeTab === 'all') {
-      return sourceTasks;
+      return topLevelTasks;
     }
     if (activeTab === 'starred') {
       // Assuming a `starred` property on tasks.
-      return sourceTasks.filter(task => (task as any).starred);
+      return topLevelTasks.filter(task => (task as any).starred);
     }
-    return sourceTasks.filter(task => taskToTaskListMap[task.id] === activeTab);
-  }, [activeTab, sourceTasks, taskToTaskListMap]);
+    return topLevelTasks.filter(task => taskToTaskListMap[task.id] === activeTab);
+  }, [activeTab, topLevelTasks, taskToTaskListMap]);
 
   const completedTasks = useMemo(() => displayedTasks.filter(t => t.status === 'completed'), [displayedTasks]);
   const pendingTasks = useMemo(() => displayedTasks.filter(t => t.status !== 'completed'), [displayedTasks]);
@@ -293,6 +362,23 @@ export default function Dashboard() {
       return sortDirection === 'asc' ? comparison : -comparison;
     });
   }, [completedTasks, sortType, sortDirection]);
+
+  const renderTaskTree = (task: Task): JSX.Element => (
+    <div key={task.id}>
+      <TaskCard
+        task={task}
+        onDelete={handleDeleteTask}
+        onToggleComplete={handleToggleComplete}
+        onUpdate={handleUpdateTask}
+        taskListTitle={taskListTitleMap[taskToTaskListMap[task.id]]}
+      />
+      {tasksByParent[task.id] && tasksByParent[task.id].length > 0 && (
+        <div className="pt-3 pl-5 ml-5 mt-3 border-l-2 border-gray-200 space-y-3">
+          {tasksByParent[task.id].map(renderTaskTree)}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -480,17 +566,8 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-              <div className="grid gap-3">
-                {sortedPendingTasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onDelete={handleDeleteTask}
-                    onToggleComplete={handleToggleComplete}
-                    onUpdate={handleUpdateTask}
-                    taskListTitle={taskListTitleMap[taskToTaskListMap[task.id]]}
-                  />
-                ))}
+              <div className="space-y-3">
+                {sortedPendingTasks.map(renderTaskTree)}
               </div>
               {sortedPendingTasks.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
@@ -505,17 +582,8 @@ export default function Dashboard() {
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">
                   Completed Tasks
                 </h2>
-                <div className="grid gap-3">
-                  {sortedCompletedTasks.map((task) => (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
-                      onDelete={handleDeleteTask}
-                      onToggleComplete={handleToggleComplete}
-                      onUpdate={handleUpdateTask}
-                      taskListTitle={taskListTitleMap[taskToTaskListMap[task.id]]}
-                    />
-                  ))}
+                <div className="space-y-3">
+                  {sortedCompletedTasks.map(renderTaskTree)}
                 </div>
               </div>
             )}
