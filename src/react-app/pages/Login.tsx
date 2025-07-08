@@ -38,7 +38,7 @@ export default function Login() {
       }
     },
     flow: 'implicit',
-    scope: 'https://www.googleapis.com/auth/tasks',
+    scope: 'https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/keep.readonly',
   });
 
   if (user) {
