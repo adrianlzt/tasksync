@@ -21,7 +21,8 @@ export default function TaskCard({ task, onDelete, onToggleComplete, taskListTit
   }, [task]);
 
   const isCompleted = task.status === 'completed';
-  const dueDate = task.due_date ? new Date(task.due_date) : null;
+  const dueDate = task.due ? new Date(task.due) : null;
+  const updatedDate = task.updated ? new Date(task.updated) : null;
   const isOverdue = dueDate && dueDate < new Date() && !isCompleted;
 
   const handleTitleBlur = () => {
@@ -84,25 +85,33 @@ export default function TaskCard({ task, onDelete, onToggleComplete, taskListTit
             />
           </div>
           
+        </div>
+        
+        <div className="ml-auto pl-4 flex flex-col items-end gap-1 text-right whitespace-nowrap">
+          {onDelete && (
+            <button
+              onClick={() => onDelete(task.id)}
+              className="text-gray-400 hover:text-red-600 transition-colors mb-2"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+
           {dueDate && (
-            <div className={`mt-2 flex items-center gap-1 ${isOverdue ? 'text-red-600' : 'text-gray-500'}`}>
-              <Calendar className="w-4 h-4" />
-              <span className="text-sm">
-                Due {format(dueDate, 'MMM d, yyyy')}
+            <div className={`text-xs flex items-center gap-1 ${isOverdue ? 'text-red-600' : 'text-gray-500'}`}>
+              <Calendar className="w-3 h-3" />
+              <span>
+                Due: {format(dueDate, 'MMM d, yyyy')}
                 {isOverdue && ' (Overdue)'}
               </span>
             </div>
           )}
+          {updatedDate && (
+            <div className="text-xs text-gray-500 flex items-center gap-1">
+              <span>Updated: {format(updatedDate, 'MMM d, yyyy')}</span>
+            </div>
+          )}
         </div>
-        
-        {onDelete && (
-          <button
-            onClick={() => onDelete(task.id)}
-            className="text-gray-400 hover:text-red-600 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        )}
       </div>
     </div>
   );
