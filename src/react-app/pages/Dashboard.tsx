@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { RotateCcw, RefreshCw, CheckSquare, User, LogOut, Link, AlertCircle, ArrowDownAz, Calendar, ArrowUp, ArrowDown, ListOrdered } from 'lucide-react';
 import { useAuth } from "../providers/AuthProvider";
 import { Task, TaskList } from '@/shared/types';
@@ -34,56 +34,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Set Google connection status and load initial data from IndexedDB
-  useEffect(() => {
-    setGoogleConnected(!!user);
-    if (!user) {
-      setTasks([]);
-      setTaskLists([]);
-      setTaskToTaskListMap({});
-      setTaskListTitleMap({});
-      setLoading(false);
-      return;
-    }
-
-    async function loadInitialData() {
-      setLoading(true);
-      setError(null);
-      try {
-        const [storedTasks, storedTaskLists, storedTaskMap] = await Promise.all([
-          getStoredTasks(),
-          getStoredTaskLists(),
-          getStoredTaskToTaskListMap(),
-        ]);
-
-        if (storedTasks.length > 0 || storedTaskLists.length > 0) {
-          setTasks(storedTasks);
-          setTaskLists(storedTaskLists);
-          setTaskListTitleMap(Object.fromEntries(storedTaskLists.map(l => [l.id, l.title])));
-          setTaskToTaskListMap(storedTaskMap || {});
-          setGoogleConnected(true);
-        }
-      } catch (err) {
-        console.error('Failed to load data from IndexedDB', err);
-        setError('Failed to load cached data.');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadInitialData();
-  }, [user]);
-
-  const handleLogout = async () => {
-    try {
-      await clearStoredData();
-    } catch (err) {
-      console.error('Failed to clear stored data on logout', err);
-    }
-    logout();
-  };
-
-  const handleSync = async () => {
+  const handleSync = useCallback(async () => {
     if (!accessToken) {
       setError("Not authenticated. Please log in again.");
       return;
@@ -126,6 +77,57 @@ export default function Dashboard() {
     } finally {
       setSyncing(false);
     }
+  }, [accessToken]);
+
+  // Set Google connection status and load initial data from IndexedDB
+  useEffect(() => {
+    setGoogleConnected(!!user);
+    if (!user) {
+      setTasks([]);
+      setTaskLists([]);
+      setTaskToTaskListMap({});
+      setTaskListTitleMap({});
+      setLoading(false);
+      return;
+    }
+
+    async function loadInitialData() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [storedTasks, storedTaskLists, storedTaskMap] = await Promise.all([
+          getStoredTasks(),
+          getStoredTaskLists(),
+          getStoredTaskToTaskListMap(),
+        ]);
+
+        if (storedTasks.length > 0 || storedTaskLists.length > 0) {
+          setTasks(storedTasks);
+          setTaskLists(storedTaskLists);
+          setTaskListTitleMap(Object.fromEntries(storedTaskLists.map(l => [l.id, l.title])));
+          setTaskToTaskListMap(storedTaskMap || {});
+          setGoogleConnected(true);
+        } else {
+          await handleSync();
+        }
+      } catch (err) {
+        console.error('Failed to load data from IndexedDB', err);
+        setError('Failed to load cached data.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadInitialData();
+  }, [user, handleSync]);
+
+  const handleLogout = async () => {
+    try {
+      await clearStoredData();
+    } catch (err) {
+      console.error('Failed to clear stored data on logout', err);
+    }
+    logout();
   };
 
   const handleSearch = (query: string, type: 'all' | 'tasks' | 'notes') => {
