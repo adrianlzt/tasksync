@@ -128,7 +128,8 @@ export default function Dashboard() {
       
       setGoogleConnected(true);
     } catch (err) {
-      setError('Failed to sync data from Google. Please try again.');
+      const message = err instanceof Error ? err.message : String(err);
+      setError(`Failed to sync from Google: ${message}`);
       console.error(err);
     } finally {
       setSyncing(false);

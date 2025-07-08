@@ -71,12 +71,17 @@ export async function getKeepNotes(accessToken: string): Promise<KeepNote[]> {
   });
 
   if (!response.ok) {
-    if (response.status === 403) {
-      // The Keep API is not publicly available and may require special permissions.
-      console.error('Failed to fetch Google Keep notes: 403 Forbidden. The account may not have access to the Keep API.');
-      throw new Error('Failed to fetch Google Keep notes. You may need to enable the Keep API for your account.');
+    let message = `Failed to fetch Google Keep notes (status: ${response.status})`;
+    try {
+      const error = await response.json();
+      if (error?.error?.message) {
+        message = error.error.message;
+      }
+    } catch (e) {
+      // ignore if response body is not json
     }
-    throw new Error('Failed to fetch Google Keep notes');
+    console.error(`Failed to fetch Google Keep notes: ${message}`);
+    throw new Error(message);
   }
 
   const data = await response.json();
