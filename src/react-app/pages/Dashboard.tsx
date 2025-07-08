@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { RotateCcw, RefreshCw, MessageSquare, CheckSquare, StickyNote, User, LogOut, Link, AlertCircle, Settings } from 'lucide-react';
 import { useAuth } from "../providers/AuthProvider";
 import { Task, TaskList, KeepNote } from '@/shared/types';
-import { getTaskLists, getTasks, deleteTask } from '../lib/googleApi';
+import { getTaskLists, getTasks, deleteTask, updateTask } from '../lib/googleApi';
 import {
   getStoredTasks,
   getStoredTaskLists,
@@ -160,6 +160,40 @@ export default function Dashboard() {
 
     setSearchResults(results);
     setLoading(false);
+  };
+
+  const handleUpdateTask = async (taskId: string, updates: Partial<Task>) => {
+    if (!accessToken) {
+      setError('Not authenticated. Please log in again.');
+      return;
+    }
+
+    const taskListId = taskToTaskListMap[taskId];
+    if (!taskListId) {
+      setError('Could not determine the task list for this task. Please sync and try again.');
+      return;
+    }
+
+    const originalTasks = [...tasks];
+    
+    // Optimistic update of local state
+    setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, ...updates } : t)));
+
+    try {
+      const updatedTask = await updateTask(accessToken, taskListId, taskId, updates);
+      await storeTasks([updatedTask]);
+      // Final update with data from server to ensure consistency
+      setTasks(prev => prev.map(t => (t.id === taskId ? updatedTask : t)));
+    } catch (err) {
+      console.error('Failed to update task:', err);
+      setError('Failed to update task. Please try again.');
+      setTasks(originalTasks); // Rollback on failure
+    }
+  };
+
+  const handleToggleComplete = async (taskId: string, completed: boolean) => {
+    const status = completed ? 'completed' : 'needsAction';
+    await handleUpdateTask(taskId, { status });
   };
 
   const handleDeleteTask = async (taskId: string) => {
@@ -361,6 +395,8 @@ export default function Dashboard() {
                     key={task.id}
                     task={task}
                     onDelete={handleDeleteTask}
+                    onToggleComplete={handleToggleComplete}
+                    onUpdate={handleUpdateTask}
                     taskListTitle={taskListTitleMap[taskToTaskListMap[task.id]]}
                   />
                 ))}
@@ -384,6 +420,8 @@ export default function Dashboard() {
                       key={task.id}
                       task={task}
                       onDelete={handleDeleteTask}
+                      onToggleComplete={handleToggleComplete}
+                      onUpdate={handleUpdateTask}
                       taskListTitle={taskListTitleMap[taskToTaskListMap[task.id]]}
                     />
                   ))}
