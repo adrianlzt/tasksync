@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { RotateCcw, RefreshCw, CheckSquare, User, LogOut, Link, AlertCircle, ArrowDownAz, Calendar, ArrowUp, ArrowDown, ListOrdered } from 'lucide-react';
+import { RotateCcw, RefreshCw, CheckSquare, User, LogOut, AlertCircle, ArrowDownAz, Calendar, ArrowUp, ArrowDown, ListOrdered } from 'lucide-react';
 import { useAuth } from "../providers/AuthProvider";
 import { useGoogleLogin } from '@react-oauth/google';
 import { Task, TaskList } from '@/shared/types';
@@ -397,7 +397,7 @@ export default function Dashboard() {
     });
   }, [completedTasks, sortType, sortDirection]);
 
-  const renderTaskTree = (task: Task): JSX.Element => (
+  const renderTaskTree = (task: Task) => (
     <div key={task.id}>
       <TaskCard
         task={task}
