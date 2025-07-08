@@ -129,8 +129,15 @@ export default function Dashboard() {
       setGoogleConnected(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      setError(`Failed to sync from Google: ${message}`);
       console.error(err);
+
+      if (message.includes('insufficient authentication scopes')) {
+        setError('Permissions have changed. Please log in again to grant access to Google Keep.');
+        // This will clear the user's session and stored data, forcing a fresh login.
+        handleLogout();
+      } else {
+        setError(`Failed to sync from Google: ${message}`);
+      }
     } finally {
       setSyncing(false);
     }
