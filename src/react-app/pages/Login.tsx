@@ -54,9 +54,9 @@ export default function Login() {
             <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <CheckSquare className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">TaskKeep Chat</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">TaskKeep</h1>
             <p className="text-gray-600">
-              Sync your Google Tasks & Keep notes with AI-powered chat assistance
+              Sync your Google Tasks & Keep notes
             </p>
           </div>
 
@@ -82,18 +82,6 @@ export default function Login() {
                 <h3 className="font-medium text-gray-900">Privacy First</h3>
                 <p className="text-sm text-gray-600">
                   Your data stays private and is never shared with third parties
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Zap className="w-4 h-4 text-purple-600" />
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">AI-Powered</h3>
-                <p className="text-sm text-gray-600">
-                  Chat with your tasks and notes using advanced AI assistance
                 </p>
               </div>
             </div>

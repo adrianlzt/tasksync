@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { RotateCcw, RefreshCw, MessageSquare, CheckSquare, User, LogOut, Link, AlertCircle, Settings, ArrowDownAz, Calendar, ArrowUp, ArrowDown, X, ListOrdered } from 'lucide-react';
+import { RotateCcw, RefreshCw, CheckSquare, User, LogOut, Link, AlertCircle, ArrowDownAz, Calendar, ArrowUp, ArrowDown, ListOrdered } from 'lucide-react';
 import { useAuth } from "../providers/AuthProvider";
 import { Task, TaskList } from '@/shared/types';
 import { getTaskLists, getTasks, deleteTask, updateTask } from '../lib/googleApi';
@@ -15,8 +15,6 @@ import {
 } from '../lib/db';
 import SearchBar from '@/react-app/components/SearchBar';
 import TaskCard from '@/react-app/components/TaskCard';
-import ChatInterface from '@/react-app/components/ChatInterface';
-import SettingsModal from '@/react-app/components/SettingsModal';
 
 export default function Dashboard() {
   const { user, logout, accessToken } = useAuth();
@@ -30,8 +28,6 @@ export default function Dashboard() {
   const [syncing, setSyncing] = useState(false);
   const [googleConnected, setGoogleConnected] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showChat, setShowChat] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [sortType, setSortType] = useState<'position' | 'date' | 'alphabetical'>('position');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -397,7 +393,7 @@ export default function Dashboard() {
               <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                 <CheckSquare className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900">TaskKeep Chat</h1>
+              <h1 className="text-xl font-bold text-gray-900">TaskKeep</h1>
             </div>
 
             <div className="flex items-center gap-4">
@@ -425,14 +421,6 @@ export default function Dashboard() {
                 {syncing ? 'Syncing...' : googleConnected ? 'Sync Google' : 'Connect Google'}
               </button>
 
-              <button
-                onClick={() => setShowChat(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>AI Chat</span>
-              </button>
-
               {/* User Menu */}
               <div className="relative">
                 <button
@@ -448,16 +436,6 @@ export default function Dashboard() {
                 {showUserMenu && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                     <div className="py-2">
-                      <button
-                        onClick={() => {
-                          setShowSettings(true);
-                          setShowUserMenu(false);
-                        }}
-                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        <Settings className="w-4 h-4" />
-                        Settings
-                      </button>
                       <button
                         onClick={handleLogout}
                         className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -603,32 +581,6 @@ export default function Dashboard() {
           className="fixed inset-0 z-40"
           onClick={() => setShowUserMenu(false)}
         />
-      )}
-
-      {/* Settings Modal */}
-      <SettingsModal
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-      />
-
-      {/* Chat Modal */}
-      {showChat && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50" onClick={() => setShowChat(false)}>
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center p-4 border-b">
-              <h2 className="text-lg font-bold flex items-center gap-2">
-                <MessageSquare className="w-5 h-5" />
-                AI Chat
-              </h2>
-              <button onClick={() => setShowChat(false)} className="text-gray-500 hover:text-gray-800">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="flex-grow p-4 overflow-auto">
-              <ChatInterface onOpenSettings={() => { setShowSettings(true); setShowChat(false); }} />
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
