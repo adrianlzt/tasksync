@@ -54,7 +54,7 @@ export default function Login() {
             <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <CheckSquare className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">TaskKeep</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">TaskSync</h1>
             <p className="text-gray-600">
               Sync your Google Tasks & Keep notes
             </p>

@@ -1,6 +1,6 @@
-# TaskKeep Chat
+# TaskSync Chat
 
-TaskKeep Chat is a web application that helps you manage your Google Tasks with an integrated AI chat assistant. It provides a clean interface to view, search, and manage your tasks, and uses a powerful chat interface to interact with your data in a conversational way.
+TaskSync Chat is a web application that helps you manage your Google Tasks with an integrated AI chat assistant. It provides a clean interface to view, search, and manage your tasks, and uses a powerful chat interface to interact with your data in a conversational way.
 
 ## Features
 

@@ -1,13 +1,13 @@
 import { openDB, DBSchema } from 'idb';
 import { Task, TaskList } from '@/shared/types';
 
-const DB_NAME = 'taskkeep-db';
+const DB_NAME = 'tasksync-db';
 const DB_VERSION = 1;
 const TASKS_STORE = 'tasks';
 const TASKLISTS_STORE = 'tasklists';
 const KEYVAL_STORE = 'keyval';
 
-interface TaskKeepDB extends DBSchema {
+interface TaskSyncDB extends DBSchema {
   [TASKS_STORE]: {
     key: string;
     value: Task;
@@ -22,7 +22,7 @@ interface TaskKeepDB extends DBSchema {
   };
 }
 
-const dbPromise = openDB<TaskKeepDB>(DB_NAME, DB_VERSION, {
+const dbPromise = openDB<TaskSyncDB>(DB_NAME, DB_VERSION, {
   upgrade(db) {
     if (!db.objectStoreNames.contains(TASKS_STORE)) {
       db.createObjectStore(TASKS_STORE, { keyPath: 'id' });
