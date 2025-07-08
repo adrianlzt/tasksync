@@ -375,6 +375,7 @@ export default function Dashboard() {
         onUpdate={handleUpdateTask}
         taskListTitle={taskListTitleMap[taskToTaskListMap[task.id]]}
         searchQuery={searchQuery}
+        activeTab={activeTab}
       />
       {tasksByParent[task.id] && tasksByParent[task.id].length > 0 && (
         <div className="pt-3 pl-5 ml-5 mt-3 border-l-2 border-gray-200 space-y-3">

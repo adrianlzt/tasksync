@@ -32,9 +32,10 @@ interface TaskCardProps {
   onToggleComplete?: (taskId: string, completed: boolean) => void;
   onUpdate?: (taskId: string, updates: Partial<Task>) => void;
   searchQuery?: string;
+  activeTab?: string;
 }
 
-export default function TaskCard({ task, onDelete, onToggleComplete, taskListTitle, onUpdate, searchQuery }: TaskCardProps) {
+export default function TaskCard({ task, onDelete, onToggleComplete, taskListTitle, onUpdate, searchQuery, activeTab }: TaskCardProps) {
   const [currentTitle, setCurrentTitle] = useState(task.title);
 
   useEffect(() => {
@@ -47,6 +48,8 @@ export default function TaskCard({ task, onDelete, onToggleComplete, taskListTit
   const isOverdue = dueDate && dueDate < new Date() && !isCompleted;
 
   const showNotes = searchQuery && task.notes && task.notes.toLowerCase().includes(searchQuery.toLowerCase());
+
+  const showTaskList = (activeTab === 'all' || activeTab === 'starred') && taskListTitle;
 
   const handleTitleBlur = () => {
     const newTitle = currentTitle ? currentTitle.trim() : '';
@@ -94,7 +97,7 @@ export default function TaskCard({ task, onDelete, onToggleComplete, taskListTit
             </div>
           )}
 
-          {taskListTitle && (
+          {showTaskList && (
             <div className="mt-2 flex items-center gap-1 text-gray-500">
               <Folder className="w-4 h-4" />
               <span className="text-sm">{taskListTitle}</span>
