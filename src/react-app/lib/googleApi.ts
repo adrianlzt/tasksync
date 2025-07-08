@@ -44,3 +44,20 @@ export async function deleteTask(accessToken: string, taskListId: string, taskId
     throw new Error(`Failed to delete task ${taskId}`);
   }
 }
+
+export async function updateTask(accessToken: string, taskListId: string, taskId: string, taskData: Partial<Task>): Promise<Task> {
+  const response = await fetch(`${API_BASE_URL}/lists/${taskListId}/tasks/${taskId}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(taskData),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to update task ${taskId}`);
+  }
+
+  return response.json();
+}
