@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { RotateCcw, RefreshCw, MessageSquare, CheckSquare, User, LogOut, Link, AlertCircle, Settings, ArrowDownAz, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
+import { RotateCcw, RefreshCw, MessageSquare, CheckSquare, User, LogOut, Link, AlertCircle, Settings, ArrowDownAz, Calendar, ArrowUp, ArrowDown, Star, X } from 'lucide-react';
 import { useAuth } from "../providers/AuthProvider";
 import { Task, TaskList } from '@/shared/types';
 import { getTaskLists, getTasks, deleteTask, updateTask } from '../lib/googleApi';
@@ -25,10 +25,11 @@ export default function Dashboard() {
   const [taskToTaskListMap, setTaskToTaskListMap] = useState<Record<string, string>>({});
   const [taskListTitleMap, setTaskListTitleMap] = useState<Record<string, string>>({});
   const [searchResults, setSearchResults] = useState<{ tasks?: Task[] } | null>(null);
-  const [activeTab, setActiveTab] = useState<'tasks' | 'chat'>('tasks');
+  const [activeTab, setActiveTab] = useState<string>('all');
   const [syncing, setSyncing] = useState(false);
   const [googleConnected, setGoogleConnected] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [sortType, setSortType] = useState<'date' | 'alphabetical'>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -231,8 +232,21 @@ export default function Dashboard() {
     setSearchResults(null);
   };
 
-  const completedTasks = tasks.filter(t => t.status === 'completed');
-  const pendingTasks = tasks.filter(t => t.status !== 'completed');
+  const sourceTasks = useMemo(() => searchResults?.tasks || tasks, [searchResults, tasks]);
+
+  const displayedTasks = useMemo(() => {
+    if (activeTab === 'all') {
+      return sourceTasks;
+    }
+    if (activeTab === 'starred') {
+      // Assuming a `starred` property on tasks.
+      return sourceTasks.filter(task => (task as any).starred);
+    }
+    return sourceTasks.filter(task => taskToTaskListMap[task.id] === activeTab);
+  }, [activeTab, sourceTasks, taskToTaskListMap]);
+
+  const completedTasks = useMemo(() => displayedTasks.filter(t => t.status === 'completed'), [displayedTasks]);
+  const pendingTasks = useMemo(() => displayedTasks.filter(t => t.status !== 'completed'), [displayedTasks]);
 
   const sortedPendingTasks = useMemo(() => {
     return [...pendingTasks].sort((a, b) => {
@@ -318,6 +332,14 @@ export default function Dashboard() {
                 {syncing ? 'Syncing...' : googleConnected ? 'Sync Google' : 'Connect Google'}
               </button>
 
+              <button
+                onClick={() => setShowChat(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>AI Chat</span>
+              </button>
+
               {/* User Menu */}
               <div className="relative">
                 <button
@@ -388,34 +410,44 @@ export default function Dashboard() {
         {/* Tabs */}
         <div className="mb-6">
           <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
+            <nav className="-mb-px flex space-x-8 overflow-x-auto pb-px">
               <button
-                onClick={() => setActiveTab('tasks')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'tasks'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                onClick={() => setActiveTab('all')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'all'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
               >
-                <CheckSquare className="w-4 h-4 inline mr-2" />
-                Tasks ({searchResults ? searchResults.tasks?.length || 0 : tasks.length})
+                All
               </button>
               <button
-                onClick={() => setActiveTab('chat')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'chat'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                onClick={() => setActiveTab('starred')}
+                className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'starred'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
               >
-                <MessageSquare className="w-4 h-4 inline mr-2" />
-                AI Chat
+                <Star className="w-4 h-4" />
+                Starred
               </button>
+              {_taskLists.map((list) => (
+                <button
+                  key={list.id}
+                  onClick={() => setActiveTab(list.id)}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === list.id
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                >
+                  {list.title}
+                </button>
+              ))}
             </nav>
           </div>
         </div>
 
         {/* Content */}
-        {activeTab === 'tasks' && (
-          <div className="space-y-6">
+        <div className="space-y-6">
             {/* Pending Tasks */}
             <div>
               <div className="flex justify-between items-center mb-4">
@@ -449,7 +481,7 @@ export default function Dashboard() {
                 )}
               </div>
               <div className="grid gap-3">
-                {(searchResults?.tasks || sortedPendingTasks).map((task) => (
+                {sortedPendingTasks.map((task) => (
                   <TaskCard
                     key={task.id}
                     task={task}
@@ -460,15 +492,15 @@ export default function Dashboard() {
                   />
                 ))}
               </div>
-              {(searchResults?.tasks || pendingTasks).length === 0 && (
+              {sortedPendingTasks.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  {searchResults ? 'No tasks found' : 'No pending tasks. Sync with Google to get started.'}
+                  {searchResults ? 'No matching tasks found.' : 'No pending tasks.'}
                 </div>
               )}
             </div>
 
             {/* Completed Tasks */}
-            {!searchResults && completedTasks.length > 0 && (
+            {!searchResults && sortedCompletedTasks.length > 0 && (
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">
                   Completed Tasks
@@ -488,14 +520,7 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-        )}
-
-        {activeTab === 'chat' && (
-          <div className="h-96">
-            <ChatInterface onOpenSettings={() => setShowSettings(true)} />
-          </div>
-        )}
-      </div>
+        </div>
 
       {/* Click outside to close user menu */}
       {showUserMenu && (
@@ -510,6 +535,26 @@ export default function Dashboard() {
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
       />
+
+      {/* Chat Modal */}
+      {showChat && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50" onClick={() => setShowChat(false)}>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-4 border-b">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <MessageSquare className="w-5 h-5" />
+                AI Chat
+              </h2>
+              <button onClick={() => setShowChat(false)} className="text-gray-500 hover:text-gray-800">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="flex-grow p-4 overflow-auto">
+              <ChatInterface onOpenSettings={() => { setShowSettings(true); setShowChat(false); }} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
