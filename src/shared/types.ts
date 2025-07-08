@@ -18,7 +18,7 @@ export const TaskSchema = z.object({
   status: z.string().nullable(),
   due: z.string().nullable(),
   completed_date: z.string().nullable(),
-  parent_task_id: z.string().nullable(),
+  parent: z.string().nullable(),
   position: z.string().nullable(),
   task_list_id: z.string().nullable(),
   updated: z.string().nullable(),
