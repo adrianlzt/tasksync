@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, Calendar, FileText, Trash2, Folder } from 'lucide-react';
+import { CheckCircle2, Circle, Calendar, FileText, Trash2, Folder, Maximize2, Minimize2 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Task } from '@/shared/types';
 import { format } from 'date-fns';
@@ -38,6 +38,7 @@ interface TaskCardProps {
 export default function TaskCard({ task, onDelete, onToggleComplete, taskListTitle, onUpdate, searchQuery, activeTab }: TaskCardProps) {
   const [currentTitle, setCurrentTitle] = useState(task.title);
   const [currentNotes, setCurrentNotes] = useState(task.notes || '');
+  const [isMaximized, setIsMaximized] = useState(false);
   const notesAreaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -60,19 +61,25 @@ export default function TaskCard({ task, onDelete, onToggleComplete, taskListTit
       textarea.style.height = 'auto'; // Reset height to recalculate
       
       const scrollHeight = textarea.scrollHeight;
-      const computedStyle = window.getComputedStyle(textarea);
-      const lineHeight = parseFloat(computedStyle.lineHeight);
-      const maxHeight = lineHeight * 3;
 
-      if (scrollHeight > maxHeight) {
-        textarea.style.height = `${maxHeight}px`;
+      if (isMaximized) {
+        textarea.style.height = `${scrollHeight}px`;
         textarea.style.overflowY = 'auto';
       } else {
-        textarea.style.height = `${scrollHeight}px`;
-        textarea.style.overflowY = 'hidden';
+        const computedStyle = window.getComputedStyle(textarea);
+        const lineHeight = parseFloat(computedStyle.lineHeight);
+        const maxHeight = lineHeight * 3;
+
+        if (scrollHeight > maxHeight) {
+          textarea.style.height = `${maxHeight}px`;
+          textarea.style.overflowY = 'auto';
+        } else {
+          textarea.style.height = `${scrollHeight}px`;
+          textarea.style.overflowY = 'hidden';
+        }
       }
     }
-  }, [currentNotes]);
+  }, [currentNotes, isMaximized]);
 
   const handleTitleBlur = () => {
     const newTitle = currentTitle ? currentTitle.trim() : '';
@@ -149,15 +156,22 @@ export default function TaskCard({ task, onDelete, onToggleComplete, taskListTit
         </div>
         
         <div className="ml-auto pl-4 flex flex-col items-end gap-1 text-right whitespace-nowrap">
-          {onDelete && (
+          <div className="flex items-center gap-2 mb-2">
+            {onDelete && (
+              <button
+                onClick={() => onDelete(task.id)}
+                className="text-gray-400 hover:text-red-600 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
             <button
-              onClick={() => onDelete(task.id)}
-              className="text-gray-400 hover:text-red-600 transition-colors mb-2"
+              onClick={() => setIsMaximized(!isMaximized)}
+              className="text-gray-400 hover:text-blue-600 transition-colors"
             >
-              <Trash2 className="w-4 h-4" />
+              {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>
-          )}
-
+          </div>
           {dueDate && (
             <div className={`text-xs flex items-center gap-1 ${isOverdue ? 'text-red-600' : 'text-gray-500'}`}>
               <Calendar className="w-3 h-3" />
