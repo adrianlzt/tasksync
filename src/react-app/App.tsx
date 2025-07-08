@@ -1,8 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import Dashboard from "@/react-app/pages/Dashboard";
-import Login from "@/react-app/pages/Login";
-import ProtectedRoute from "@/react-app/components/ProtectedRoute";
 import { AuthProvider } from "./providers/AuthProvider";
 
 export default function App() {
@@ -17,14 +15,9 @@ export default function App() {
       <AuthProvider>
         <Router>
           <Routes>
-            <Route path="/login" element={<Login />} />
             <Route
               path="/"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
+              element={<Dashboard />}
             />
           </Routes>
         </Router>

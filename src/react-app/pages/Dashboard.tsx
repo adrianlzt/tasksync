@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { RotateCcw, RefreshCw, CheckSquare, User, LogOut, Link, AlertCircle, ArrowDownAz, Calendar, ArrowUp, ArrowDown, ListOrdered } from 'lucide-react';
 import { useAuth } from "../providers/AuthProvider";
+import { useGoogleLogin } from '@react-oauth/google';
 import { Task, TaskList } from '@/shared/types';
 import { getTaskLists, getTasks, deleteTask, updateTask } from '../lib/googleApi';
 import {
@@ -17,7 +18,8 @@ import SearchBar from '@/react-app/components/SearchBar';
 import TaskCard from '@/react-app/components/TaskCard';
 
 export default function Dashboard() {
-  const { user, logout, accessToken } = useAuth();
+  const { user, login, logout, accessToken, isPending: isAuthPending } = useAuth();
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [_taskLists, setTaskLists] = useState<TaskList[]>([]);
   const [taskToTaskListMap, setTaskToTaskListMap] = useState<Record<string, string>>({});
@@ -26,13 +28,45 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<string>('all');
   const [syncing, setSyncing] = useState(false);
-  const [googleConnected, setGoogleConnected] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [sortType, setSortType] = useState<'position' | 'date' | 'alphabetical'>('position');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const handleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoggingIn(true);
+      setError(null);
+      try {
+        const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: {
+            'Authorization': `Bearer ${tokenResponse.access_token}`,
+          },
+        });
+
+        if (!userInfoRes.ok) {
+          throw new Error('Failed to fetch user info from Google');
+        }
+        
+        const userInfo = await userInfoRes.json();
+        
+        login({
+          id: userInfo.sub,
+          email: userInfo.email,
+        }, tokenResponse.access_token);
+
+      } catch (err) {
+        console.error("Login failed", err);
+        setError(err instanceof Error ? err.message : 'An unknown error occurred during login.');
+      } finally {
+        setIsLoggingIn(false);
+      }
+    },
+    flow: 'implicit',
+    scope: 'https://www.googleapis.com/auth/tasks',
+  });
 
   const handleSync = useCallback(async () => {
     if (!accessToken) {
@@ -81,7 +115,6 @@ export default function Dashboard() {
 
   // Set Google connection status and load initial data from IndexedDB
   useEffect(() => {
-    setGoogleConnected(!!user);
     if (!user) {
       setTasks([]);
       setTaskLists([]);
@@ -106,8 +139,7 @@ export default function Dashboard() {
           setTaskLists(storedTaskLists);
           setTaskListTitleMap(Object.fromEntries(storedTaskLists.map(l => [l.id, l.title])));
           setTaskToTaskListMap(storedTaskMap || {});
-          setGoogleConnected(true);
-        } else {
+        } else if (user) {
           await handleSync();
         }
       } catch (err) {
@@ -400,7 +432,7 @@ export default function Dashboard() {
 
             <div className="flex items-center gap-4">
               {/* Google Connection Status */}
-              {!googleConnected && (
+              {!user && !isAuthPending && (
                 <div className="flex items-center gap-2 text-sm text-orange-600">
                   <AlertCircle className="w-4 h-4" />
                   <span>Google not connected</span>
@@ -408,45 +440,57 @@ export default function Dashboard() {
               )}
 
               {/* Sync Button */}
-              <button
-                onClick={handleSync}
-                disabled={syncing}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-              >
-                {syncing ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : googleConnected ? (
-                  <RotateCcw className="w-4 h-4" />
-                ) : (
-                  <Link className="w-4 h-4" />
-                )}
-                {syncing ? 'Syncing...' : googleConnected ? 'Sync Google' : 'Connect Google'}
-              </button>
+              {user && (
+                <button
+                  onClick={handleSync}
+                  disabled={syncing || !user}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  {syncing ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RotateCcw className="w-4 h-4" />
+                  )}
+                  {syncing ? 'Syncing...' : 'Sync Google'}
+                </button>
+              )}
 
               {/* User Menu */}
               <div className="relative">
-                <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-gray-600" />
-                  </div>
-                  <span className="text-sm text-gray-700">{user?.email}</span>
-                </button>
+                {user ? (
+                  <>
+                    <button
+                      onClick={() => setShowUserMenu(!showUserMenu)}
+                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-gray-600" />
+                      </div>
+                      <span className="text-sm text-gray-700">{user.email}</span>
+                    </button>
 
-                {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                    <div className="py-2">
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Sign out
-                      </button>
-                    </div>
-                  </div>
+                    {showUserMenu && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                        <div className="py-2">
+                          <button
+                            onClick={handleLogout}
+                            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            <LogOut className="w-4 h-4" />
+                            Sign out
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    onClick={() => handleLogin()}
+                    disabled={isAuthPending || isLoggingIn}
+                    className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    {isAuthPending || isLoggingIn ? 'Connecting...' : 'Continue with Google'}
+                  </button>
                 )}
               </div>
             </div>
@@ -554,11 +598,11 @@ export default function Dashboard() {
                 )}
               </div>
               <div className="space-y-3">
-                {sortedPendingTasks.map(renderTaskTree)}
+                {user && sortedPendingTasks.map(renderTaskTree)}
               </div>
               {sortedPendingTasks.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  {searchResults ? 'No matching tasks found.' : 'No pending tasks.'}
+                  {isAuthPending ? 'Loading...' : !user ? 'Please log in to see your tasks.' : searchResults ? 'No matching tasks found.' : 'No pending tasks.'}
                 </div>
               )}
             </div>
