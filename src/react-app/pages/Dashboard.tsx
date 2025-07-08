@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { RotateCcw, RefreshCw, MessageSquare, CheckSquare, StickyNote, User, LogOut, Link, AlertCircle, Settings } from 'lucide-react';
 import { useAuth } from "../providers/AuthProvider";
 import { Task, TaskList, KeepNote } from '@/shared/types';
-import { getTaskLists, getTasks, deleteTask, updateTask } from '../lib/googleApi';
+import { getTaskLists, getTasks, deleteTask, updateTask, getKeepNotes } from '../lib/googleApi';
 import {
   getStoredTasks,
   getStoredTaskLists,
@@ -95,7 +95,10 @@ export default function Dashboard() {
     setError(null);
 
     try {
-      const fetchedTaskLists = await getTaskLists(accessToken);
+      const [fetchedTaskLists, fetchedNotes] = await Promise.all([
+        getTaskLists(accessToken),
+        getKeepNotes(accessToken),
+      ]);
       
       const taskMap: Record<string, string> = {};
       const allTasks: Task[] = [];
@@ -121,9 +124,7 @@ export default function Dashboard() {
       setTaskListTitleMap(Object.fromEntries(fetchedTaskLists.map(l => [l.id, l.title])));
       setTasks(allTasks);
       setTaskToTaskListMap(taskMap);
-      
-      // Google Keep API is not public, so we clear notes on sync.
-      setNotes([]);
+      setNotes(fetchedNotes);
       
       setGoogleConnected(true);
     } catch (err) {
