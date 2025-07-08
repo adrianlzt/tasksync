@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { RotateCcw, RefreshCw, MessageSquare, CheckSquare, StickyNote, User, LogOut, Link, AlertCircle, Settings, ArrowDownAz, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
+import { RotateCcw, RefreshCw, MessageSquare, CheckSquare, User, LogOut, Link, AlertCircle, Settings, ArrowDownAz, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAuth } from "../providers/AuthProvider";
-import { Task, TaskList, KeepNote } from '@/shared/types';
+import { Task, TaskList } from '@/shared/types';
 import { getTaskLists, getTasks, deleteTask, updateTask } from '../lib/googleApi';
 import {
   getStoredTasks,
@@ -15,7 +15,6 @@ import {
 } from '../lib/db';
 import SearchBar from '@/react-app/components/SearchBar';
 import TaskCard from '@/react-app/components/TaskCard';
-import NoteCard from '@/react-app/components/NoteCard';
 import ChatInterface from '@/react-app/components/ChatInterface';
 import SettingsModal from '@/react-app/components/SettingsModal';
 
@@ -23,11 +22,10 @@ export default function Dashboard() {
   const { user, logout, accessToken } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [_taskLists, setTaskLists] = useState<TaskList[]>([]);
-  const [notes, setNotes] = useState<KeepNote[]>([]);
   const [taskToTaskListMap, setTaskToTaskListMap] = useState<Record<string, string>>({});
   const [taskListTitleMap, setTaskListTitleMap] = useState<Record<string, string>>({});
-  const [searchResults, setSearchResults] = useState<{ tasks?: Task[]; notes?: KeepNote[] } | null>(null);
-  const [activeTab, setActiveTab] = useState<'tasks' | 'notes' | 'chat'>('tasks');
+  const [searchResults, setSearchResults] = useState<{ tasks?: Task[] } | null>(null);
+  const [activeTab, setActiveTab] = useState<'tasks' | 'chat'>('tasks');
   const [syncing, setSyncing] = useState(false);
   const [googleConnected, setGoogleConnected] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -46,7 +44,6 @@ export default function Dashboard() {
       setTaskLists([]);
       setTaskToTaskListMap({});
       setTaskListTitleMap({});
-      setNotes([]);
       setLoading(false);
       return;
     }
@@ -124,9 +121,6 @@ export default function Dashboard() {
       setTasks(allTasks);
       setTaskToTaskListMap(taskMap);
 
-      // Google Keep API is not public, so we clear notes on sync.
-      setNotes([]);
-
       setGoogleConnected(true);
     } catch (err) {
       setError('Failed to sync data from Google. Please try again.');
@@ -144,7 +138,7 @@ export default function Dashboard() {
     setLoading(true);
     const lowerCaseQuery = query.toLowerCase();
 
-    const results: { tasks?: Task[]; notes?: KeepNote[] } = {};
+    const results: { tasks?: Task[] } = {};
 
     if (type === 'all' || type === 'tasks') {
       results.tasks = tasks.filter(task =>
@@ -154,10 +148,7 @@ export default function Dashboard() {
     }
 
     if (type === 'all' || type === 'notes') {
-      results.notes = notes.filter(note =>
-        note.title?.toLowerCase().includes(lowerCaseQuery) ||
-        note.content?.toLowerCase().includes(lowerCaseQuery)
-      );
+      // notes functionality is removed.
     }
 
     setSearchResults(results);
@@ -227,7 +218,6 @@ export default function Dashboard() {
       setTasks(prev => prev.filter(t => t.id !== taskId));
       if (searchResults?.tasks) {
         setSearchResults(prev => ({
-          ...prev,
           tasks: prev?.tasks?.filter(t => t.id !== taskId),
         }));
       }
@@ -289,9 +279,6 @@ export default function Dashboard() {
       return sortDirection === 'asc' ? comparison : -comparison;
     });
   }, [completedTasks, sortType, sortDirection]);
-
-  const pinnedNotes = notes.filter(n => n.pinned === 1);
-  const regularNotes = notes.filter(n => n.pinned === 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -413,16 +400,6 @@ export default function Dashboard() {
                 Tasks ({searchResults ? searchResults.tasks?.length || 0 : tasks.length})
               </button>
               <button
-                onClick={() => setActiveTab('notes')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'notes'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-              >
-                <StickyNote className="w-4 h-4 inline mr-2" />
-                Notes ({searchResults ? searchResults.notes?.length || 0 : notes.length})
-              </button>
-              <button
                 onClick={() => setActiveTab('chat')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'chat'
                     ? 'border-blue-500 text-blue-600'
@@ -510,41 +487,6 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
-          </div>
-        )}
-
-        {activeTab === 'notes' && (
-          <div className="space-y-6">
-            {/* Pinned Notes */}
-            {!searchResults && pinnedNotes.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Pinned Notes
-                </h2>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {pinnedNotes.map((note) => (
-                    <NoteCard key={note.id} note={note} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* All/Regular Notes */}
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                {searchResults ? 'Search Results' : 'Notes'}
-              </h2>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {(searchResults?.notes || regularNotes).map((note) => (
-                  <NoteCard key={note.id} note={note} />
-                ))}
-              </div>
-              {(searchResults?.notes || regularNotes).length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  {searchResults ? 'No notes found' : 'No notes available. Sync with Google to get started.'}
-                </div>
-              )}
-            </div>
           </div>
         )}
 

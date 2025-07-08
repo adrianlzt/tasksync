@@ -1,5 +1,5 @@
-import { CheckCircle2, Circle, Calendar, FileText, Trash2, Folder } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { CheckCircle2, Circle, Calendar, Trash2, Folder } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { Task } from '@/shared/types';
 import { format } from 'date-fns';
 
@@ -13,33 +13,10 @@ interface TaskCardProps {
 
 export default function TaskCard({ task, onDelete, onToggleComplete, taskListTitle, onUpdate }: TaskCardProps) {
   const [currentTitle, setCurrentTitle] = useState(task.title);
-  const [currentNotes, setCurrentNotes] = useState(task.notes || '');
-  const notesAreaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     setCurrentTitle(task.title);
-    setCurrentNotes(task.notes || '');
   }, [task]);
-
-  useEffect(() => {
-    if (notesAreaRef.current) {
-      const textarea = notesAreaRef.current;
-      textarea.style.height = 'auto'; // Reset height to recalculate
-
-      const scrollHeight = textarea.scrollHeight;
-      const computedStyle = window.getComputedStyle(textarea);
-      const lineHeight = parseFloat(computedStyle.lineHeight);
-      const maxHeight = lineHeight * 3;
-
-      if (scrollHeight > maxHeight) {
-        textarea.style.height = `${maxHeight}px`;
-        textarea.style.overflowY = 'auto';
-      } else {
-        textarea.style.height = `${scrollHeight}px`;
-        textarea.style.overflowY = 'hidden';
-      }
-    }
-  }, [currentNotes]);
 
   const isCompleted = task.status === 'completed';
   const dueDate = task.due ? new Date(task.due) : null;
@@ -52,12 +29,6 @@ export default function TaskCard({ task, onDelete, onToggleComplete, taskListTit
       onUpdate?.(task.id, { title: newTitle });
     } else if (!newTitle) {
       setCurrentTitle(task.title); // revert if empty
-    }
-  };
-
-  const handleNotesBlur = () => {
-    if (currentNotes.trim() !== (task.notes || '').trim()) {
-      onUpdate?.(task.id, { notes: currentNotes.trim() });
     }
   };
 
@@ -92,19 +63,6 @@ export default function TaskCard({ task, onDelete, onToggleComplete, taskListTit
               <span className="text-sm">{taskListTitle}</span>
             </div>
           )}
-          
-          <div className="mt-2 flex items-start gap-1">
-            <FileText className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
-            <textarea
-              ref={notesAreaRef}
-              value={currentNotes}
-              onChange={(e) => setCurrentNotes(e.target.value)}
-              onBlur={handleNotesBlur}
-              placeholder="Add notes..."
-              className="text-sm text-gray-600 w-full bg-transparent focus:outline-none focus:bg-gray-50 rounded px-1 -mx-1 resize-none"
-              disabled={isCompleted}
-            />
-          </div>
           
         </div>
         
